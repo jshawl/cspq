@@ -1,6 +1,8 @@
 import gleam/int
+import gleam/dict
 import gleam/string
 import gleam/io
+import gleam/option.{Some, None}
 import lustre
 import lustre/attribute
 import lustre/element.{type Element}
@@ -19,11 +21,12 @@ pub fn main() {
 // MODEL -----------------------------------------------------------------------
 
 type Model {
-  Model(value: String, length: Int, max: Int)
+  Model(dict.Dict(String, String))
 }
 
 fn init(_flags) -> Model {
-  Model(value: "", length: 0, max: 10)
+  let d = dict.from_list([#("mykey", "myvalue")])
+  Model(d)
 }
 
 // UPDATE ----------------------------------------------------------------------
@@ -36,16 +39,12 @@ pub opaque type Msg {
 fn update(model: Model, msg: Msg) -> Model {
   case msg {
     UserUpdatedMessage(key, value) -> {
-      io.debug(key)
-      io.debug(value)
-      let length = string.length(value)
-
-      case length <= model.max {
-        True -> Model(..model, value: value, length: length)
-        False -> model
-      }
+      let Model(d) = model
+      Model(dict.update(d, key, fn(_x){
+        value
+      }))
     }
-    UserResetMessage -> Model(..model, value: "", length: 0)
+    UserResetMessage -> Model(dict.from_list([]))
   }
 }
 
@@ -53,13 +52,19 @@ fn update(model: Model, msg: Msg) -> Model {
 
 fn view(model: Model) -> Element(Msg) {
   let styles = [#("width", "100vw"), #("height", "100vh"), #("padding", "1rem")]
-  let length = int.to_string(model.length)
-  let max = int.to_string(model.max)
 
   let handler = fn (key: String) { 
     fn (value: String) {
       UserUpdatedMessage(key, value)
     }
+  }
+
+  let Model(d) = model
+  io.debug(d)
+
+  let value = case dict.get(d, "mykey") {
+    Error(_) -> ""
+    Ok(v) -> v
   }
 
   ui.centre(
@@ -70,10 +75,10 @@ fn view(model: Model) -> Element(Msg) {
         [],
         [element.text("Write a message:")],
         ui.input([
-          attribute.value(model.value),
+          attribute.value(value),
           event.on_input(handler("mykey")),
         ]),
-        [element.text(length <> "/" <> max)],
+        [],
       ),
       ui.button(
         [event.on_click(UserResetMessage)], 
