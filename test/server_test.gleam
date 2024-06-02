@@ -17,9 +17,16 @@ pub fn get_query_parameter_test() {
 
 pub fn content_security_policy_test() {
   let existing_csp = "script-src 'none'"
-  let csp =
-    server.content_security_policy("https://example.com/?csp=" <> existing_csp)
-  let assert Ok(re) = regex.from_string(existing_csp <> " 'nonce-(.*)'")
-  regex.check(with: re, content: csp)
+  server.content_security_policy(
+    "https://example.com/?csp=" <> existing_csp,
+    "abcdefg",
+  )
+  |> should.equal(existing_csp <> " 'nonce-abcdefg';")
+}
+
+pub fn response_body_test() {
+  let assert Ok(re) = regex.from_string("nonce=\"abcdefg\"")
+  re
+  |> regex.check(server.response_body("https://example.com/", "abcdefg"))
   |> should.be_true
 }
