@@ -2257,7 +2257,7 @@ var Model = class extends CustomType {
     this[0] = x0;
   }
 };
-var UserUpdatedMessage = class extends CustomType {
+var InputMessage = class extends CustomType {
   constructor(key, value3) {
     super();
     this.key = key;
@@ -2271,7 +2271,7 @@ function init2(_) {
   return new Model(d);
 }
 function update2(model, msg) {
-  if (msg instanceof UserUpdatedMessage) {
+  if (msg instanceof InputMessage) {
     let key = msg.key;
     let value3 = msg.value;
     let d = model[0];
@@ -2290,7 +2290,7 @@ function view(model) {
   ]);
   let handler = (key) => {
     return (value4) => {
-      return new UserUpdatedMessage(key, value4);
+      return new InputMessage(key, value4);
     };
   };
   let d = model[0];

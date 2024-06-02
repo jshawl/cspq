@@ -32,13 +32,13 @@ fn init(_flags) -> Model {
 // UPDATE ----------------------------------------------------------------------
 
 pub opaque type Msg {
-  UserUpdatedMessage(key: String, value: String)
+  InputMessage(key: String, value: String)
   UserResetMessage
 }
 
 fn update(model: Model, msg: Msg) -> Model {
   case msg {
-    UserUpdatedMessage(key, value) -> {
+    InputMessage(key, value) -> {
       let Model(d) = model
       Model(dict.update(d, key, fn(_x){
         value
@@ -55,7 +55,7 @@ fn view(model: Model) -> Element(Msg) {
 
   let handler = fn (key: String) { 
     fn (value: String) {
-      UserUpdatedMessage(key, value)
+      InputMessage(key, value)
     }
   }
 
