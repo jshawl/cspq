@@ -1445,8 +1445,8 @@ function inspectUtfCodepoint(codepoint2) {
 function new$() {
   return new_map();
 }
-function get(from2, get2) {
-  return map_get(from2, get2);
+function get(from3, get2) {
+  return map_get(from3, get2);
 }
 function insert(dict, key, value2) {
   return map_insert(key, value2, dict);
@@ -1690,6 +1690,11 @@ var Effect = class extends CustomType {
     this.all = all;
   }
 };
+function from2(effect) {
+  return new Effect(toList([(dispatch, _) => {
+    return effect(dispatch);
+  }]));
+}
 function none() {
   return new Effect(toList([]));
 }
@@ -2209,15 +2214,6 @@ var NotABrowser = class extends CustomType {
 function application(init3, update3, view2) {
   return new App(init3, update3, view2, new None());
 }
-function simple(init3, update3, view2) {
-  let init$1 = (flags) => {
-    return [init3(flags), none()];
-  };
-  let update$1 = (model, msg) => {
-    return [update3(model, msg), none()];
-  };
-  return application(init$1, update$1, view2);
-}
 function start3(app, selector, flags) {
   return guard(
     !is_browser(),
@@ -2305,7 +2301,7 @@ function init2(_) {
       }
     }
   })();
-  return new Model(from_list(toList([["csp", csp]])));
+  return [new Model(from_list(toList([["csp", csp]]))), none()];
 }
 function update2(model, msg) {
   let key = msg.key;
@@ -2313,10 +2309,14 @@ function update2(model, msg) {
   let d = model[0];
   let ba = bit_array_from_string(value2);
   let encoded = base64_encode(ba, true);
-  setHash(encoded);
-  return new Model(update(d, key, (_) => {
-    return value2;
-  }));
+  return [
+    new Model(update(d, key, (_) => {
+      return value2;
+    })),
+    from2((_) => {
+      return setHash(encoded);
+    })
+  ];
 }
 function view(model) {
   let handler = (key) => {
@@ -2344,13 +2344,13 @@ function view(model) {
   );
 }
 function main() {
-  let app = simple(init2, update2, view);
+  let app = application(init2, update2, view);
   let $ = start3(app, "#app", void 0);
   if (!$.isOk()) {
     throw makeError(
       "assignment_no_match",
       "csp",
-      20,
+      21,
       "main",
       "Assignment pattern did not match",
       { value: $ }

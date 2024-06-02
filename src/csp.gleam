@@ -3,6 +3,7 @@ import gleam/dict
 import gleam/io
 import gleam/string
 import lustre
+import lustre/effect
 import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
@@ -16,7 +17,7 @@ pub fn set_hash(h: String) -> Nil
 // MAIN ------------------------------------------------------------------------
 
 pub fn main() {
-  let app = lustre.simple(init, update, view)
+  let app = lustre.application(init, update, view)
   let assert Ok(_) = lustre.start(app, "#app", Nil)
 }
 
@@ -26,7 +27,7 @@ type Model {
   Model(dict.Dict(String, String))
 }
 
-fn init(_flags) -> Model {
+fn init(_flags) -> #(Model, effect.Effect(a)) {
   let hash = get_hash()
   let starter_csp = "default-src 'self'; img-src https://*; child-src 'none';"
 
@@ -46,7 +47,7 @@ fn init(_flags) -> Model {
       }
     }
   }
-  Model(dict.from_list([#("csp", csp)]))
+  #(Model(dict.from_list([#("csp", csp)])), effect.none())
 }
 
 // UPDATE ----------------------------------------------------------------------
@@ -55,14 +56,15 @@ pub opaque type Msg {
   InputMessage(key: String, value: String)
 }
 
-fn update(model: Model, msg: Msg) -> Model {
+fn update(model: Model, msg: Msg) -> #(Model,effect.Effect(a)) {
   case msg {
     InputMessage(key, value) -> {
       let Model(d) = model
       let ba = bit_array.from_string(value)
       let encoded = bit_array.base64_encode(ba, True)
-      set_hash(encoded)
-      Model(dict.update(d, key, fn(_x) { value }))
+      #(Model(dict.update(d, key, fn(_x) { value })), effect.from(fn(_){
+        set_hash(encoded)
+      }))
     }
   }
 }
