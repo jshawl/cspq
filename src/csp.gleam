@@ -28,19 +28,21 @@ type Model {
 
 fn init(_flags) -> Model {
   let hash = get_hash()
-  let starter_csp =  "default-src 'self'; img-src https://*; child-src 'none';"
+  let starter_csp = "default-src 'self'; img-src https://*; child-src 'none';"
 
   let csp = case string.length(hash) {
     0 -> starter_csp
     1 -> starter_csp
     _ -> {
-      let encoded = string.slice(from: hash, at_index: 1, length: string.length(hash))
+      let encoded =
+        string.slice(from: hash, at_index: 1, length: string.length(hash))
       case bit_array.base64_decode(encoded) {
         Error(Nil) -> starter_csp
-        Ok(v) -> case bit_array.to_string(v) {
-          Error(Nil) -> starter_csp
-          Ok(v) -> v
-        }
+        Ok(v) ->
+          case bit_array.to_string(v) {
+            Error(Nil) -> starter_csp
+            Ok(v) -> v
+          }
       }
     }
   }
@@ -60,9 +62,7 @@ fn update(model: Model, msg: Msg) -> Model {
       let ba = bit_array.from_string(value)
       let encoded = bit_array.base64_encode(ba, True)
       set_hash(encoded)
-      Model(dict.update(d, key, fn(_x){
-        value
-      }))
+      Model(dict.update(d, key, fn(_x) { value }))
     }
   }
 }
@@ -70,10 +70,8 @@ fn update(model: Model, msg: Msg) -> Model {
 // VIEW ------------------------------------------------------------------------
 
 fn view(model: Model) -> Element(Msg) {
-  let handler = fn (key: String) { 
-    fn (value: String) {
-      InputMessage(key, value)
-    }
+  let handler = fn(key: String) {
+    fn(value: String) { InputMessage(key, value) }
   }
 
   let Model(d) = model
@@ -84,17 +82,8 @@ fn view(model: Model) -> Element(Msg) {
     Ok(v) -> v
   }
 
-  html.form(
-    [],
-    [
-      html.label(
-        [],
-        [element.text("csp:")]
-      ),
-      html.textarea(
-        [event.on_input(handler("csp"))],
-        value
-      ),
-    ]
-  )
+  html.form([], [
+    html.label([], [element.text("csp:")]),
+    html.textarea([event.on_input(handler("csp"))], value),
+  ])
 }
