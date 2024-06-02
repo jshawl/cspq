@@ -2,7 +2,7 @@
 var CustomType = class {
   withFields(fields) {
     let properties = Object.keys(this).map(
-      (label) => label in fields ? fields[label] : this[label]
+      (label2) => label2 in fields ? fields[label2] : this[label2]
     );
     return new this.constructor(...properties);
   }
@@ -40,12 +40,15 @@ var List = class {
     return desired === 0;
   }
   countLength() {
-    let length2 = 0;
+    let length3 = 0;
     for (let _ of this)
-      length2++;
-    return length2;
+      length3++;
+    return length3;
   }
 };
+function prepend(element2, tail) {
+  return new NonEmpty(element2, tail);
+}
 function toList(elements, tail) {
   return List.fromArray(elements, tail);
 }
@@ -73,6 +76,49 @@ var NonEmpty = class extends List {
     this.tail = tail;
   }
 };
+var BitArray = class _BitArray {
+  constructor(buffer) {
+    if (!(buffer instanceof Uint8Array)) {
+      throw "BitArray can only be constructed from a Uint8Array";
+    }
+    this.buffer = buffer;
+  }
+  // @internal
+  get length() {
+    return this.buffer.length;
+  }
+  // @internal
+  byteAt(index2) {
+    return this.buffer[index2];
+  }
+  // @internal
+  floatAt(index2) {
+    return byteArrayToFloat(this.buffer.slice(index2, index2 + 8));
+  }
+  // @internal
+  intFromSlice(start4, end) {
+    return byteArrayToInt(this.buffer.slice(start4, end));
+  }
+  // @internal
+  binaryFromSlice(start4, end) {
+    return new _BitArray(this.buffer.slice(start4, end));
+  }
+  // @internal
+  sliceAfter(index2) {
+    return new _BitArray(this.buffer.slice(index2));
+  }
+};
+function byteArrayToInt(byteArray) {
+  byteArray = byteArray.reverse();
+  let value3 = 0;
+  for (let i = byteArray.length - 1; i >= 0; i--) {
+    value3 = value3 * 256 + byteArray[i];
+  }
+  return value3;
+}
+function byteArrayToFloat(byteArray) {
+  return new Float64Array(byteArray.reverse().buffer)[0];
+}
 var Result = class _Result extends CustomType {
   // @internal
   static isResult(data) {
@@ -80,9 +126,9 @@ var Result = class _Result extends CustomType {
   }
 };
 var Ok = class extends Result {
-  constructor(value) {
+  constructor(value3) {
     super();
-    this[0] = value;
+    this[0] = value3;
   }
   // @internal
   isOk() {
@@ -177,25 +223,1013 @@ function makeError(variant, module, line, fn, message, extra) {
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/option.mjs
+var Some = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
 var None = class extends CustomType {
 };
+function to_result(option, e) {
+  if (option instanceof Some) {
+    let a = option[0];
+    return new Ok(a);
+  } else {
+    return new Error(e);
+  }
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/list.mjs
+function do_reverse(loop$remaining, loop$accumulator) {
+  while (true) {
+    let remaining = loop$remaining;
+    let accumulator = loop$accumulator;
+    if (remaining.hasLength(0)) {
+      return accumulator;
+    } else {
+      let item = remaining.head;
+      let rest$1 = remaining.tail;
+      loop$remaining = rest$1;
+      loop$accumulator = prepend(item, accumulator);
+    }
+  }
+}
+function reverse(xs) {
+  return do_reverse(xs, toList([]));
+}
+function do_map(loop$list, loop$fun, loop$acc) {
+  while (true) {
+    let list = loop$list;
+    let fun = loop$fun;
+    let acc = loop$acc;
+    if (list.hasLength(0)) {
+      return reverse(acc);
+    } else {
+      let x = list.head;
+      let xs = list.tail;
+      loop$list = xs;
+      loop$fun = fun;
+      loop$acc = prepend(fun(x), acc);
+    }
+  }
+}
+function map(list, fun) {
+  return do_map(list, fun, toList([]));
+}
+function fold(loop$list, loop$initial, loop$fun) {
+  while (true) {
+    let list = loop$list;
+    let initial = loop$initial;
+    let fun = loop$fun;
+    if (list.hasLength(0)) {
+      return initial;
+    } else {
+      let x = list.head;
+      let rest$1 = list.tail;
+      loop$list = rest$1;
+      loop$initial = fun(initial, x);
+      loop$fun = fun;
+    }
+  }
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/result.mjs
+function map2(result, fun) {
+  if (result.isOk()) {
+    let x = result[0];
+    return new Ok(fun(x));
+  } else {
+    let e = result[0];
+    return new Error(e);
+  }
+}
+function map_error(result, fun) {
+  if (result.isOk()) {
+    let x = result[0];
+    return new Ok(x);
+  } else {
+    let error = result[0];
+    return new Error(fun(error));
+  }
+}
+function try$(result, fun) {
+  if (result.isOk()) {
+    let x = result[0];
+    return fun(x);
+  } else {
+    let e = result[0];
+    return new Error(e);
+  }
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/string_builder.mjs
+function from_strings(strings) {
+  return concat(strings);
+}
+function to_string(builder) {
+  return identity(builder);
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/dynamic.mjs
+var DecodeError = class extends CustomType {
+  constructor(expected, found, path) {
+    super();
+    this.expected = expected;
+    this.found = found;
+    this.path = path;
+  }
+};
+function from(a) {
+  return identity(a);
+}
+function string(data) {
+  return decode_string(data);
+}
+function classify(data) {
+  return classify_dynamic(data);
+}
+function int(data) {
+  return decode_int(data);
+}
+function any(decoders) {
+  return (data) => {
+    if (decoders.hasLength(0)) {
+      return new Error(
+        toList([new DecodeError("another type", classify(data), toList([]))])
+      );
+    } else {
+      let decoder2 = decoders.head;
+      let decoders$1 = decoders.tail;
+      let $ = decoder2(data);
+      if ($.isOk()) {
+        let decoded = $[0];
+        return new Ok(decoded);
+      } else {
+        return any(decoders$1)(data);
+      }
+    }
+  };
+}
+function push_path(error, name) {
+  let name$1 = from(name);
+  let decoder2 = any(
+    toList([string, (x) => {
+      return map2(int(x), to_string2);
+    }])
+  );
+  let name$2 = (() => {
+    let $ = decoder2(name$1);
+    if ($.isOk()) {
+      let name$22 = $[0];
+      return name$22;
+    } else {
+      let _pipe = toList(["<", classify(name$1), ">"]);
+      let _pipe$1 = from_strings(_pipe);
+      return to_string(_pipe$1);
+    }
+  })();
+  return error.withFields({ path: prepend(name$2, error.path) });
+}
+function map_errors(result, f) {
+  return map_error(
+    result,
+    (_capture) => {
+      return map(_capture, f);
+    }
+  );
+}
+function field(name, inner_type) {
+  return (value3) => {
+    let missing_field_error = new DecodeError("field", "nothing", toList([]));
+    return try$(
+      decode_field(value3, name),
+      (maybe_inner) => {
+        let _pipe = maybe_inner;
+        let _pipe$1 = to_result(_pipe, toList([missing_field_error]));
+        let _pipe$2 = try$(_pipe$1, inner_type);
+        return map_errors(
+          _pipe$2,
+          (_capture) => {
+            return push_path(_capture, name);
+          }
+        );
+      }
+    );
+  };
+}
 
 // build/dev/javascript/gleam_stdlib/dict.mjs
+var referenceMap = /* @__PURE__ */ new WeakMap();
 var tempDataView = new DataView(new ArrayBuffer(8));
+var referenceUID = 0;
+function hashByReference(o) {
+  const known = referenceMap.get(o);
+  if (known !== void 0) {
+    return known;
+  }
+  const hash = referenceUID++;
+  if (referenceUID === 2147483647) {
+    referenceUID = 0;
+  }
+  referenceMap.set(o, hash);
+  return hash;
+}
+function hashMerge(a, b) {
+  return a ^ b + 2654435769 + (a << 6) + (a >> 2) | 0;
+}
+function hashString(s) {
+  let hash = 0;
+  const len = s.length;
+  for (let i = 0; i < len; i++) {
+    hash = Math.imul(31, hash) + s.charCodeAt(i) | 0;
+  }
+  return hash;
+}
+function hashNumber(n) {
+  tempDataView.setFloat64(0, n);
+  const i = tempDataView.getInt32(0);
+  const j = tempDataView.getInt32(4);
+  return Math.imul(73244475, i >> 16 ^ i) ^ j;
+}
+function hashBigInt(n) {
+  return hashString(n.toString());
+}
+function hashObject(o) {
+  const proto = Object.getPrototypeOf(o);
+  if (proto !== null && typeof proto.hashCode === "function") {
+    try {
+      const code = o.hashCode(o);
+      if (typeof code === "number") {
+        return code;
+      }
+    } catch {
+    }
+  }
+  if (o instanceof Promise || o instanceof WeakSet || o instanceof WeakMap) {
+    return hashByReference(o);
+  }
+  if (o instanceof Date) {
+    return hashNumber(o.getTime());
+  }
+  let h = 0;
+  if (o instanceof ArrayBuffer) {
+    o = new Uint8Array(o);
+  }
+  if (Array.isArray(o) || o instanceof Uint8Array) {
+    for (let i = 0; i < o.length; i++) {
+      h = Math.imul(31, h) + getHash(o[i]) | 0;
+    }
+  } else if (o instanceof Set) {
+    o.forEach((v) => {
+      h = h + getHash(v) | 0;
+    });
+  } else if (o instanceof Map) {
+    o.forEach((v, k) => {
+      h = h + hashMerge(getHash(v), getHash(k)) | 0;
+    });
+  } else {
+    const keys2 = Object.keys(o);
+    for (let i = 0; i < keys2.length; i++) {
+      const k = keys2[i];
+      const v = o[k];
+      h = h + hashMerge(getHash(v), hashString(k)) | 0;
+    }
+  }
+  return h;
+}
+function getHash(u) {
+  if (u === null)
+    return 1108378658;
+  if (u === void 0)
+    return 1108378659;
+  if (u === true)
+    return 1108378657;
+  if (u === false)
+    return 1108378656;
+  switch (typeof u) {
+    case "number":
+      return hashNumber(u);
+    case "string":
+      return hashString(u);
+    case "bigint":
+      return hashBigInt(u);
+    case "object":
+      return hashObject(u);
+    case "symbol":
+      return hashByReference(u);
+    case "function":
+      return hashByReference(u);
+    default:
+      return 0;
+  }
+}
 var SHIFT = 5;
 var BUCKET_SIZE = Math.pow(2, SHIFT);
 var MASK = BUCKET_SIZE - 1;
 var MAX_INDEX_NODE = BUCKET_SIZE / 2;
 var MIN_ARRAY_NODE = BUCKET_SIZE / 4;
+var ENTRY = 0;
+var ARRAY_NODE = 1;
+var INDEX_NODE = 2;
+var COLLISION_NODE = 3;
+var EMPTY = {
+  type: INDEX_NODE,
+  bitmap: 0,
+  array: []
+};
+function mask(hash, shift) {
+  return hash >>> shift & MASK;
+}
+function bitpos(hash, shift) {
+  return 1 << mask(hash, shift);
+}
+function bitcount(x) {
+  x -= x >> 1 & 1431655765;
+  x = (x & 858993459) + (x >> 2 & 858993459);
+  x = x + (x >> 4) & 252645135;
+  x += x >> 8;
+  x += x >> 16;
+  return x & 127;
+}
+function index(bitmap, bit) {
+  return bitcount(bitmap & bit - 1);
+}
+function cloneAndSet(arr, at, val) {
+  const len = arr.length;
+  const out = new Array(len);
+  for (let i = 0; i < len; ++i) {
+    out[i] = arr[i];
+  }
+  out[at] = val;
+  return out;
+}
+function spliceIn(arr, at, val) {
+  const len = arr.length;
+  const out = new Array(len + 1);
+  let i = 0;
+  let g = 0;
+  while (i < at) {
+    out[g++] = arr[i++];
+  }
+  out[g++] = val;
+  while (i < len) {
+    out[g++] = arr[i++];
+  }
+  return out;
+}
+function spliceOut(arr, at) {
+  const len = arr.length;
+  const out = new Array(len - 1);
+  let i = 0;
+  let g = 0;
+  while (i < at) {
+    out[g++] = arr[i++];
+  }
+  ++i;
+  while (i < len) {
+    out[g++] = arr[i++];
+  }
+  return out;
+}
+function createNode(shift, key1, val1, key2hash, key2, val2) {
+  const key1hash = getHash(key1);
+  if (key1hash === key2hash) {
+    return {
+      type: COLLISION_NODE,
+      hash: key1hash,
+      array: [
+        { type: ENTRY, k: key1, v: val1 },
+        { type: ENTRY, k: key2, v: val2 }
+      ]
+    };
+  }
+  const addedLeaf = { val: false };
+  return assoc(
+    assocIndex(EMPTY, shift, key1hash, key1, val1, addedLeaf),
+    shift,
+    key2hash,
+    key2,
+    val2,
+    addedLeaf
+  );
+}
+function assoc(root2, shift, hash, key, val, addedLeaf) {
+  switch (root2.type) {
+    case ARRAY_NODE:
+      return assocArray(root2, shift, hash, key, val, addedLeaf);
+    case INDEX_NODE:
+      return assocIndex(root2, shift, hash, key, val, addedLeaf);
+    case COLLISION_NODE:
+      return assocCollision(root2, shift, hash, key, val, addedLeaf);
+  }
+}
+function assocArray(root2, shift, hash, key, val, addedLeaf) {
+  const idx = mask(hash, shift);
+  const node = root2.array[idx];
+  if (node === void 0) {
+    addedLeaf.val = true;
+    return {
+      type: ARRAY_NODE,
+      size: root2.size + 1,
+      array: cloneAndSet(root2.array, idx, { type: ENTRY, k: key, v: val })
+    };
+  }
+  if (node.type === ENTRY) {
+    if (isEqual(key, node.k)) {
+      if (val === node.v) {
+        return root2;
+      }
+      return {
+        type: ARRAY_NODE,
+        size: root2.size,
+        array: cloneAndSet(root2.array, idx, {
+          type: ENTRY,
+          k: key,
+          v: val
+        })
+      };
+    }
+    addedLeaf.val = true;
+    return {
+      type: ARRAY_NODE,
+      size: root2.size,
+      array: cloneAndSet(
+        root2.array,
+        idx,
+        createNode(shift + SHIFT, node.k, node.v, hash, key, val)
+      )
+    };
+  }
+  const n = assoc(node, shift + SHIFT, hash, key, val, addedLeaf);
+  if (n === node) {
+    return root2;
+  }
+  return {
+    type: ARRAY_NODE,
+    size: root2.size,
+    array: cloneAndSet(root2.array, idx, n)
+  };
+}
+function assocIndex(root2, shift, hash, key, val, addedLeaf) {
+  const bit = bitpos(hash, shift);
+  const idx = index(root2.bitmap, bit);
+  if ((root2.bitmap & bit) !== 0) {
+    const node = root2.array[idx];
+    if (node.type !== ENTRY) {
+      const n = assoc(node, shift + SHIFT, hash, key, val, addedLeaf);
+      if (n === node) {
+        return root2;
+      }
+      return {
+        type: INDEX_NODE,
+        bitmap: root2.bitmap,
+        array: cloneAndSet(root2.array, idx, n)
+      };
+    }
+    const nodeKey = node.k;
+    if (isEqual(key, nodeKey)) {
+      if (val === node.v) {
+        return root2;
+      }
+      return {
+        type: INDEX_NODE,
+        bitmap: root2.bitmap,
+        array: cloneAndSet(root2.array, idx, {
+          type: ENTRY,
+          k: key,
+          v: val
+        })
+      };
+    }
+    addedLeaf.val = true;
+    return {
+      type: INDEX_NODE,
+      bitmap: root2.bitmap,
+      array: cloneAndSet(
+        root2.array,
+        idx,
+        createNode(shift + SHIFT, nodeKey, node.v, hash, key, val)
+      )
+    };
+  } else {
+    const n = root2.array.length;
+    if (n >= MAX_INDEX_NODE) {
+      const nodes = new Array(32);
+      const jdx = mask(hash, shift);
+      nodes[jdx] = assocIndex(EMPTY, shift + SHIFT, hash, key, val, addedLeaf);
+      let j = 0;
+      let bitmap = root2.bitmap;
+      for (let i = 0; i < 32; i++) {
+        if ((bitmap & 1) !== 0) {
+          const node = root2.array[j++];
+          nodes[i] = node;
+        }
+        bitmap = bitmap >>> 1;
+      }
+      return {
+        type: ARRAY_NODE,
+        size: n + 1,
+        array: nodes
+      };
+    } else {
+      const newArray = spliceIn(root2.array, idx, {
+        type: ENTRY,
+        k: key,
+        v: val
+      });
+      addedLeaf.val = true;
+      return {
+        type: INDEX_NODE,
+        bitmap: root2.bitmap | bit,
+        array: newArray
+      };
+    }
+  }
+}
+function assocCollision(root2, shift, hash, key, val, addedLeaf) {
+  if (hash === root2.hash) {
+    const idx = collisionIndexOf(root2, key);
+    if (idx !== -1) {
+      const entry = root2.array[idx];
+      if (entry.v === val) {
+        return root2;
+      }
+      return {
+        type: COLLISION_NODE,
+        hash,
+        array: cloneAndSet(root2.array, idx, { type: ENTRY, k: key, v: val })
+      };
+    }
+    const size = root2.array.length;
+    addedLeaf.val = true;
+    return {
+      type: COLLISION_NODE,
+      hash,
+      array: cloneAndSet(root2.array, size, { type: ENTRY, k: key, v: val })
+    };
+  }
+  return assoc(
+    {
+      type: INDEX_NODE,
+      bitmap: bitpos(root2.hash, shift),
+      array: [root2]
+    },
+    shift,
+    hash,
+    key,
+    val,
+    addedLeaf
+  );
+}
+function collisionIndexOf(root2, key) {
+  const size = root2.array.length;
+  for (let i = 0; i < size; i++) {
+    if (isEqual(key, root2.array[i].k)) {
+      return i;
+    }
+  }
+  return -1;
+}
+function find(root2, shift, hash, key) {
+  switch (root2.type) {
+    case ARRAY_NODE:
+      return findArray(root2, shift, hash, key);
+    case INDEX_NODE:
+      return findIndex(root2, shift, hash, key);
+    case COLLISION_NODE:
+      return findCollision(root2, key);
+  }
+}
+function findArray(root2, shift, hash, key) {
+  const idx = mask(hash, shift);
+  const node = root2.array[idx];
+  if (node === void 0) {
+    return void 0;
+  }
+  if (node.type !== ENTRY) {
+    return find(node, shift + SHIFT, hash, key);
+  }
+  if (isEqual(key, node.k)) {
+    return node;
+  }
+  return void 0;
+}
+function findIndex(root2, shift, hash, key) {
+  const bit = bitpos(hash, shift);
+  if ((root2.bitmap & bit) === 0) {
+    return void 0;
+  }
+  const idx = index(root2.bitmap, bit);
+  const node = root2.array[idx];
+  if (node.type !== ENTRY) {
+    return find(node, shift + SHIFT, hash, key);
+  }
+  if (isEqual(key, node.k)) {
+    return node;
+  }
+  return void 0;
+}
+function findCollision(root2, key) {
+  const idx = collisionIndexOf(root2, key);
+  if (idx < 0) {
+    return void 0;
+  }
+  return root2.array[idx];
+}
+function without(root2, shift, hash, key) {
+  switch (root2.type) {
+    case ARRAY_NODE:
+      return withoutArray(root2, shift, hash, key);
+    case INDEX_NODE:
+      return withoutIndex(root2, shift, hash, key);
+    case COLLISION_NODE:
+      return withoutCollision(root2, key);
+  }
+}
+function withoutArray(root2, shift, hash, key) {
+  const idx = mask(hash, shift);
+  const node = root2.array[idx];
+  if (node === void 0) {
+    return root2;
+  }
+  let n = void 0;
+  if (node.type === ENTRY) {
+    if (!isEqual(node.k, key)) {
+      return root2;
+    }
+  } else {
+    n = without(node, shift + SHIFT, hash, key);
+    if (n === node) {
+      return root2;
+    }
+  }
+  if (n === void 0) {
+    if (root2.size <= MIN_ARRAY_NODE) {
+      const arr = root2.array;
+      const out = new Array(root2.size - 1);
+      let i = 0;
+      let j = 0;
+      let bitmap = 0;
+      while (i < idx) {
+        const nv = arr[i];
+        if (nv !== void 0) {
+          out[j] = nv;
+          bitmap |= 1 << i;
+          ++j;
+        }
+        ++i;
+      }
+      ++i;
+      while (i < arr.length) {
+        const nv = arr[i];
+        if (nv !== void 0) {
+          out[j] = nv;
+          bitmap |= 1 << i;
+          ++j;
+        }
+        ++i;
+      }
+      return {
+        type: INDEX_NODE,
+        bitmap,
+        array: out
+      };
+    }
+    return {
+      type: ARRAY_NODE,
+      size: root2.size - 1,
+      array: cloneAndSet(root2.array, idx, n)
+    };
+  }
+  return {
+    type: ARRAY_NODE,
+    size: root2.size,
+    array: cloneAndSet(root2.array, idx, n)
+  };
+}
+function withoutIndex(root2, shift, hash, key) {
+  const bit = bitpos(hash, shift);
+  if ((root2.bitmap & bit) === 0) {
+    return root2;
+  }
+  const idx = index(root2.bitmap, bit);
+  const node = root2.array[idx];
+  if (node.type !== ENTRY) {
+    const n = without(node, shift + SHIFT, hash, key);
+    if (n === node) {
+      return root2;
+    }
+    if (n !== void 0) {
+      return {
+        type: INDEX_NODE,
+        bitmap: root2.bitmap,
+        array: cloneAndSet(root2.array, idx, n)
+      };
+    }
+    if (root2.bitmap === bit) {
+      return void 0;
+    }
+    return {
+      type: INDEX_NODE,
+      bitmap: root2.bitmap ^ bit,
+      array: spliceOut(root2.array, idx)
+    };
+  }
+  if (isEqual(key, node.k)) {
+    if (root2.bitmap === bit) {
+      return void 0;
+    }
+    return {
+      type: INDEX_NODE,
+      bitmap: root2.bitmap ^ bit,
+      array: spliceOut(root2.array, idx)
+    };
+  }
+  return root2;
+}
+function withoutCollision(root2, key) {
+  const idx = collisionIndexOf(root2, key);
+  if (idx < 0) {
+    return root2;
+  }
+  if (root2.array.length === 1) {
+    return void 0;
+  }
+  return {
+    type: COLLISION_NODE,
+    hash: root2.hash,
+    array: spliceOut(root2.array, idx)
+  };
+}
+function forEach(root2, fn) {
+  if (root2 === void 0) {
+    return;
+  }
+  const items = root2.array;
+  const size = items.length;
+  for (let i = 0; i < size; i++) {
+    const item = items[i];
+    if (item === void 0) {
+      continue;
+    }
+    if (item.type === ENTRY) {
+      fn(item.v, item.k);
+      continue;
+    }
+    forEach(item, fn);
+  }
+}
+var Dict = class _Dict {
+  /**
+   * @template V
+   * @param {Record<string,V>} o
+   * @returns {Dict<string,V>}
+   */
+  static fromObject(o) {
+    const keys2 = Object.keys(o);
+    let m = _Dict.new();
+    for (let i = 0; i < keys2.length; i++) {
+      const k = keys2[i];
+      m = m.set(k, o[k]);
+    }
+    return m;
+  }
+  /**
+   * @template K,V
+   * @param {Map<K,V>} o
+   * @returns {Dict<K,V>}
+   */
+  static fromMap(o) {
+    let m = _Dict.new();
+    o.forEach((v, k) => {
+      m = m.set(k, v);
+    });
+    return m;
+  }
+  static new() {
+    return new _Dict(void 0, 0);
+  }
+  /**
+   * @param {undefined | Node<K,V>} root
+   * @param {number} size
+   */
+  constructor(root2, size) {
+    this.root = root2;
+    this.size = size;
+  }
+  /**
+   * @template NotFound
+   * @param {K} key
+   * @param {NotFound} notFound
+   * @returns {NotFound | V}
+   */
+  get(key, notFound) {
+    if (this.root === void 0) {
+      return notFound;
+    }
+    const found = find(this.root, 0, getHash(key), key);
+    if (found === void 0) {
+      return notFound;
+    }
+    return found.v;
+  }
+  /**
+   * @param {K} key
+   * @param {V} val
+   * @returns {Dict<K,V>}
+   */
+  set(key, val) {
+    const addedLeaf = { val: false };
+    const root2 = this.root === void 0 ? EMPTY : this.root;
+    const newRoot = assoc(root2, 0, getHash(key), key, val, addedLeaf);
+    if (newRoot === this.root) {
+      return this;
+    }
+    return new _Dict(newRoot, addedLeaf.val ? this.size + 1 : this.size);
+  }
+  /**
+   * @param {K} key
+   * @returns {Dict<K,V>}
+   */
+  delete(key) {
+    if (this.root === void 0) {
+      return this;
+    }
+    const newRoot = without(this.root, 0, getHash(key), key);
+    if (newRoot === this.root) {
+      return this;
+    }
+    if (newRoot === void 0) {
+      return _Dict.new();
+    }
+    return new _Dict(newRoot, this.size - 1);
+  }
+  /**
+   * @param {K} key
+   * @returns {boolean}
+   */
+  has(key) {
+    if (this.root === void 0) {
+      return false;
+    }
+    return find(this.root, 0, getHash(key), key) !== void 0;
+  }
+  /**
+   * @returns {[K,V][]}
+   */
+  entries() {
+    if (this.root === void 0) {
+      return [];
+    }
+    const result = [];
+    this.forEach((v, k) => result.push([k, v]));
+    return result;
+  }
+  /**
+   *
+   * @param {(val:V,key:K)=>void} fn
+   */
+  forEach(fn) {
+    forEach(this.root, fn);
+  }
+  hashCode() {
+    let h = 0;
+    this.forEach((v, k) => {
+      h = h + hashMerge(getHash(v), getHash(k)) | 0;
+    });
+    return h;
+  }
+  /**
+   * @param {unknown} o
+   * @returns {boolean}
+   */
+  equals(o) {
+    if (!(o instanceof _Dict) || this.size !== o.size) {
+      return false;
+    }
+    let equal = true;
+    this.forEach((v, k) => {
+      equal = equal && isEqual(o.get(k, !v), v);
+    });
+    return equal;
+  }
+};
 
 // build/dev/javascript/gleam_stdlib/gleam_stdlib.mjs
+var Nil = void 0;
+var NOT_FOUND = {};
+function identity(x) {
+  return x;
+}
 function to_string3(term) {
   return term.toString();
 }
+function string_length(string3) {
+  if (string3 === "") {
+    return 0;
+  }
+  const iterator = graphemes_iterator(string3);
+  if (iterator) {
+    let i = 0;
+    for (const _ of iterator) {
+      i++;
+    }
+    return i;
+  } else {
+    return string3.match(/./gsu).length;
+  }
+}
+function graphemes_iterator(string3) {
+  if (Intl && Intl.Segmenter) {
+    return new Intl.Segmenter().segment(string3)[Symbol.iterator]();
+  }
+}
+function concat(xs) {
+  let result = "";
+  for (const x of xs) {
+    result = result + x;
+  }
+  return result;
+}
+function map_get(map4, key) {
+  const value3 = map4.get(key, NOT_FOUND);
+  if (value3 === NOT_FOUND) {
+    return new Error(Nil);
+  }
+  return new Ok(value3);
+}
+function classify_dynamic(data) {
+  if (typeof data === "string") {
+    return "String";
+  } else if (typeof data === "boolean") {
+    return "Bool";
+  } else if (data instanceof Result) {
+    return "Result";
+  } else if (data instanceof List) {
+    return "List";
+  } else if (data instanceof BitArray) {
+    return "BitArray";
+  } else if (data instanceof Dict) {
+    return "Dict";
+  } else if (Number.isInteger(data)) {
+    return "Int";
+  } else if (Array.isArray(data)) {
+    return `Tuple of ${data.length} elements`;
+  } else if (typeof data === "number") {
+    return "Float";
+  } else if (data === null) {
+    return "Null";
+  } else if (data === void 0) {
+    return "Nil";
+  } else {
+    const type = typeof data;
+    return type.charAt(0).toUpperCase() + type.slice(1);
+  }
+}
+function decoder_error(expected, got) {
+  return decoder_error_no_classify(expected, classify_dynamic(got));
+}
+function decoder_error_no_classify(expected, got) {
+  return new Error(
+    List.fromArray([new DecodeError(expected, got, List.fromArray([]))])
+  );
+}
+function decode_string(data) {
+  return typeof data === "string" ? new Ok(data) : decoder_error("String", data);
+}
+function decode_int(data) {
+  return Number.isInteger(data) ? new Ok(data) : decoder_error("Int", data);
+}
+function decode_field(value3, name) {
+  const not_a_map_error = () => decoder_error("Dict", value3);
+  if (value3 instanceof Dict || value3 instanceof WeakMap || value3 instanceof Map) {
+    const entry = map_get(value3, name);
+    return new Ok(entry.isOk() ? new Some(entry[0]) : new None());
+  } else if (value3 === null) {
+    return not_a_map_error();
+  } else if (Object.getPrototypeOf(value3) == Object.prototype) {
+    return try_get_field(value3, name, () => new Ok(new None()));
+  } else {
+    return try_get_field(value3, name, not_a_map_error);
+  }
+}
+function try_get_field(value3, field4, or_else) {
+  try {
+    return field4 in value3 ? new Ok(new Some(value3[field4])) : or_else();
+  } catch {
+    return or_else();
+  }
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/int.mjs
-function to_string(x) {
+function to_string2(x) {
   return to_string3(x);
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/string.mjs
+function length2(string3) {
+  return string_length(string3);
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/bool.mjs
@@ -226,15 +1260,23 @@ var Text = class extends CustomType {
   }
 };
 var Element = class extends CustomType {
-  constructor(key, namespace, tag, attrs, children, self_closing, void$) {
+  constructor(key, namespace, tag2, attrs, children, self_closing, void$) {
     super();
     this.key = key;
     this.namespace = namespace;
-    this.tag = tag;
+    this.tag = tag2;
     this.attrs = attrs;
     this.children = children;
     this.self_closing = self_closing;
     this.void = void$;
+  }
+};
+var Attribute = class extends CustomType {
+  constructor(x0, x1, as_property) {
+    super();
+    this[0] = x0;
+    this[1] = x1;
+    this.as_property = as_property;
   }
 };
 var Event = class extends CustomType {
@@ -246,42 +1288,68 @@ var Event = class extends CustomType {
 };
 
 // build/dev/javascript/lustre/lustre/attribute.mjs
+function attribute(name, value3) {
+  return new Attribute(name, from(value3), false);
+}
 function on(name, handler) {
   return new Event("on" + name, handler);
 }
+function style(properties) {
+  return attribute(
+    "style",
+    fold(
+      properties,
+      "",
+      (styles, _use1) => {
+        let name$1 = _use1[0];
+        let value$1 = _use1[1];
+        return styles + name$1 + ":" + value$1 + ";";
+      }
+    )
+  );
+}
+function class$(name) {
+  return attribute("class", name);
+}
+function type_(name) {
+  return attribute("type", name);
+}
+function value(val) {
+  return attribute("value", val);
+}
 
 // build/dev/javascript/lustre/lustre/element.mjs
-function element(tag, attrs, children) {
-  if (tag === "area") {
-    return new Element("", "", tag, attrs, toList([]), false, true);
-  } else if (tag === "base") {
-    return new Element("", "", tag, attrs, toList([]), false, true);
-  } else if (tag === "br") {
-    return new Element("", "", tag, attrs, toList([]), false, true);
-  } else if (tag === "col") {
-    return new Element("", "", tag, attrs, toList([]), false, true);
-  } else if (tag === "embed") {
-    return new Element("", "", tag, attrs, toList([]), false, true);
-  } else if (tag === "hr") {
-    return new Element("", "", tag, attrs, toList([]), false, true);
-  } else if (tag === "img") {
-    return new Element("", "", tag, attrs, toList([]), false, true);
-  } else if (tag === "input") {
-    return new Element("", "", tag, attrs, toList([]), false, true);
-  } else if (tag === "link") {
-    return new Element("", "", tag, attrs, toList([]), false, true);
-  } else if (tag === "meta") {
-    return new Element("", "", tag, attrs, toList([]), false, true);
-  } else if (tag === "param") {
-    return new Element("", "", tag, attrs, toList([]), false, true);
-  } else if (tag === "source") {
-    return new Element("", "", tag, attrs, toList([]), false, true);
-  } else if (tag === "track") {
-    return new Element("", "", tag, attrs, toList([]), false, true);
-  } else if (tag === "wbr") {
-    return new Element("", "", tag, attrs, toList([]), false, true);
+function element(tag2, attrs, children) {
+  if (tag2 === "area") {
+    return new Element("", "", tag2, attrs, toList([]), false, true);
+  } else if (tag2 === "base") {
+    return new Element("", "", tag2, attrs, toList([]), false, true);
+  } else if (tag2 === "br") {
+    return new Element("", "", tag2, attrs, toList([]), false, true);
+  } else if (tag2 === "col") {
+    return new Element("", "", tag2, attrs, toList([]), false, true);
+  } else if (tag2 === "embed") {
+    return new Element("", "", tag2, attrs, toList([]), false, true);
+  } else if (tag2 === "hr") {
+    return new Element("", "", tag2, attrs, toList([]), false, true);
+  } else if (tag2 === "img") {
+    return new Element("", "", tag2, attrs, toList([]), false, true);
+  } else if (tag2 === "input") {
+    return new Element("", "", tag2, attrs, toList([]), false, true);
+  } else if (tag2 === "link") {
+    return new Element("", "", tag2, attrs, toList([]), false, true);
+  } else if (tag2 === "meta") {
+    return new Element("", "", tag2, attrs, toList([]), false, true);
+  } else if (tag2 === "param") {
+    return new Element("", "", tag2, attrs, toList([]), false, true);
+  } else if (tag2 === "source") {
+    return new Element("", "", tag2, attrs, toList([]), false, true);
+  } else if (tag2 === "track") {
+    return new Element("", "", tag2, attrs, toList([]), false, true);
+  } else if (tag2 === "wbr") {
+    return new Element("", "", tag2, attrs, toList([]), false, true);
   } else {
-    return new Element("", "", tag, attrs, children, false, false);
+    return new Element("", "", tag2, attrs, children, false, false);
   }
 }
 function text(content) {
@@ -313,9 +1381,9 @@ var ForceModel = class extends CustomType {
 // build/dev/javascript/lustre/vdom.ffi.mjs
 function morph(prev, next, dispatch, isComponent = false) {
   let out;
-  let stack = [{ prev, next, parent: prev.parentNode }];
-  while (stack.length) {
-    let { prev: prev2, next: next2, parent } = stack.pop();
+  let stack2 = [{ prev, next, parent: prev.parentNode }];
+  while (stack2.length) {
+    let { prev: prev2, next: next2, parent } = stack2.pop();
     if (next2.subtree !== void 0)
       next2 = next2.subtree();
     if (next2.content !== void 0) {
@@ -337,7 +1405,7 @@ function morph(prev, next, dispatch, isComponent = false) {
         prev: prev2,
         next: next2,
         dispatch,
-        stack,
+        stack: stack2,
         isComponent
       });
       if (!prev2) {
@@ -348,16 +1416,16 @@ function morph(prev, next, dispatch, isComponent = false) {
       out ??= created;
     } else if (next2.elements !== void 0) {
       iterateElement(next2, (fragmentElement) => {
-        stack.unshift({ prev: prev2, next: fragmentElement, parent });
+        stack2.unshift({ prev: prev2, next: fragmentElement, parent });
         prev2 = prev2?.nextSibling;
       });
     } else if (next2.subtree !== void 0) {
-      stack.push({ prev: prev2, next: next2, parent });
+      stack2.push({ prev: prev2, next: next2, parent });
     }
   }
   return out;
 }
-function createElementNode({ prev, next, dispatch, stack }) {
+function createElementNode({ prev, next, dispatch, stack: stack2 }) {
   const namespace = next.namespace || "http://www.w3.org/1999/xhtml";
   const canMorph = prev && prev.nodeType === Node.ELEMENT_NODE && prev.localName === next.tag && prev.namespaceURI === (next.namespace || "http://www.w3.org/1999/xhtml");
   const el2 = canMorph ? prev : namespace ? document.createElementNS(namespace, next.tag) : document.createElement(next.tag);
@@ -372,19 +1440,19 @@ function createElementNode({ prev, next, dispatch, stack }) {
   const prevHandlers = canMorph ? new Set(handlersForEl.keys()) : null;
   const prevAttributes = canMorph ? new Set(Array.from(prev.attributes, (a) => a.name)) : null;
   let className = null;
-  let style = null;
+  let style2 = null;
   let innerHTML = null;
   for (const attr of next.attrs) {
     const name = attr[0];
-    const value = attr[1];
+    const value3 = attr[1];
     if (attr.as_property) {
-      if (el2[name] !== value)
-        el2[name] = value;
+      if (el2[name] !== value3)
+        el2[name] = value3;
       if (canMorph)
         prevAttributes.delete(name);
     } else if (name.startsWith("on")) {
       const eventName = name.slice(2);
-      const callback = dispatch(value);
+      const callback = dispatch(value3);
       if (!handlersForEl.has(eventName)) {
         el2.addEventListener(eventName, lustreGenericEventHandler);
       }
@@ -398,18 +1466,18 @@ function createElementNode({ prev, next, dispatch, stack }) {
         el2.addEventListener(eventName, lustreGenericEventHandler);
       }
       handlersForEl.set(eventName, callback);
-      el2.setAttribute(name, value);
+      el2.setAttribute(name, value3);
     } else if (name === "class") {
-      className = className === null ? value : className + " " + value;
+      className = className === null ? value3 : className + " " + value3;
     } else if (name === "style") {
-      style = style === null ? value : style + value;
+      style2 = style2 === null ? value3 : style2 + value3;
     } else if (name === "dangerous-unescaped-html") {
-      innerHTML = value;
+      innerHTML = value3;
     } else {
-      if (typeof value === "string")
-        el2.setAttribute(name, value);
+      if (typeof value3 === "string")
+        el2.setAttribute(name, value3);
       if (name === "value" || name === "selected")
-        el2[name] = value;
+        el2[name] = value3;
       if (canMorph)
         prevAttributes.delete(name);
     }
@@ -419,8 +1487,8 @@ function createElementNode({ prev, next, dispatch, stack }) {
     if (canMorph)
       prevAttributes.delete("class");
   }
-  if (style !== null) {
-    el2.setAttribute("style", style);
+  if (style2 !== null) {
+    el2.setAttribute("style", style2);
     if (canMorph)
       prevAttributes.delete("style");
   }
@@ -458,13 +1526,13 @@ function createElementNode({ prev, next, dispatch, stack }) {
           prevChild,
           currElement,
           el2,
-          stack,
+          stack2,
           incomingKeyedChildren,
           keyedChildren,
           seenKeys
         );
       } else {
-        stack.unshift({ prev: prevChild, next: currElement, parent: el2 });
+        stack2.unshift({ prev: prevChild, next: currElement, parent: el2 });
         prevChild = prevChild?.nextSibling;
       }
     });
@@ -492,7 +1560,7 @@ function lustreGenericEventHandler(event2) {
 }
 function lustreServerEventHandler(event2) {
   const el2 = event2.target;
-  const tag = el2.getAttribute(`data-lustre-on-${event2.type}`);
+  const tag2 = el2.getAttribute(`data-lustre-on-${event2.type}`);
   const data = JSON.parse(el2.getAttribute("data-lustre-data") || "{}");
   const include = JSON.parse(el2.getAttribute("data-lustre-include") || "[]");
   switch (event2.type) {
@@ -502,7 +1570,7 @@ function lustreServerEventHandler(event2) {
       break;
   }
   return {
-    tag,
+    tag: tag2,
     data: include.reduce(
       (data2, property) => {
         const path = property.split(".");
@@ -534,7 +1602,7 @@ function getKeyedChildren(el2) {
   }
   return keyedChildren;
 }
-function diffKeyedChild(prevChild, child, el2, stack, incomingKeyedChildren, keyedChildren, seenKeys) {
+function diffKeyedChild(prevChild, child, el2, stack2, incomingKeyedChildren, keyedChildren, seenKeys) {
   while (prevChild && !incomingKeyedChildren.has(prevChild.getAttribute("data-lustre-key"))) {
     const nextChild = prevChild.nextSibling;
     el2.removeChild(prevChild);
@@ -542,35 +1610,35 @@ function diffKeyedChild(prevChild, child, el2, stack, incomingKeyedChildren, key
   }
   if (keyedChildren.size === 0) {
     iterateElement(child, (currChild) => {
-      stack.unshift({ prev: prevChild, next: currChild, parent: el2 });
+      stack2.unshift({ prev: prevChild, next: currChild, parent: el2 });
       prevChild = prevChild?.nextSibling;
     });
     return prevChild;
   }
   if (seenKeys.has(child.key)) {
     console.warn(`Duplicate key found in Lustre vnode: ${child.key}`);
-    stack.unshift({ prev: null, next: child, parent: el2 });
+    stack2.unshift({ prev: null, next: child, parent: el2 });
     return prevChild;
   }
   seenKeys.add(child.key);
   const keyedChild = keyedChildren.get(child.key);
   if (!keyedChild && !prevChild) {
-    stack.unshift({ prev: null, next: child, parent: el2 });
+    stack2.unshift({ prev: null, next: child, parent: el2 });
     return prevChild;
   }
   if (!keyedChild && prevChild !== null) {
     const placeholder = document.createTextNode("");
     el2.insertBefore(placeholder, prevChild);
-    stack.unshift({ prev: placeholder, next: child, parent: el2 });
+    stack2.unshift({ prev: placeholder, next: child, parent: el2 });
     return prevChild;
   }
   if (!keyedChild || keyedChild === prevChild) {
-    stack.unshift({ prev: prevChild, next: child, parent: el2 });
+    stack2.unshift({ prev: prevChild, next: child, parent: el2 });
     prevChild = prevChild?.nextSibling;
     return prevChild;
   }
   el2.insertBefore(keyedChild, prevChild);
-  stack.unshift({ prev: keyedChild, next: child, parent: el2 });
+  stack2.unshift({ prev: keyedChild, next: child, parent: el2 });
   return prevChild;
 }
 function iterateElement(element2, processElement) {
@@ -752,14 +1820,6 @@ function start3(app, selector, flags) {
   );
 }
 
-// build/dev/javascript/lustre/lustre/element/html.mjs
-function div(attrs, children) {
-  return element("div", attrs, children);
-}
-function button(attrs, children) {
-  return element("button", attrs, children);
-}
-
 // build/dev/javascript/lustre/lustre/event.mjs
 function on2(name, handler) {
   return on(name, handler);
@@ -769,37 +1829,360 @@ function on_click(msg) {
     return new Ok(msg);
   });
 }
+function value2(event2) {
+  let _pipe = event2;
+  return field("target", field("value", string))(
+    _pipe
+  );
+}
+function on_input(msg) {
+  return on2(
+    "input",
+    (event2) => {
+      let _pipe = value2(event2);
+      return map2(_pipe, msg);
+    }
+  );
+}
+
+// build/dev/javascript/lustre/lustre/element/html.mjs
+function div(attrs, children) {
+  return element("div", attrs, children);
+}
+function span(attrs, children) {
+  return element("span", attrs, children);
+}
+function button(attrs, children) {
+  return element("button", attrs, children);
+}
+function input(attrs) {
+  return element("input", attrs, toList([]));
+}
+function label(attrs, children) {
+  return element("label", attrs, children);
+}
+
+// build/dev/javascript/lustre_ui/lustre/ui/button.mjs
+function button2(attributes, children) {
+  return button(
+    prepend(
+      class$("lustre-ui-button"),
+      prepend(type_("button"), attributes)
+    ),
+    children
+  );
+}
+
+// build/dev/javascript/lustre_ui/lustre/ui/layout/stack.mjs
+function of(element2, attributes, children) {
+  return element2(
+    prepend(class$("lustre-ui-stack"), attributes),
+    children
+  );
+}
+function packed() {
+  return class$("packed");
+}
+
+// build/dev/javascript/lustre_ui/lustre/ui/field.mjs
+function of2(element2, attributes, label2, input4, message) {
+  return of(
+    element2,
+    prepend(
+      class$("lustre-ui-field"),
+      prepend(packed(), attributes)
+    ),
+    toList([
+      span(toList([class$("label")]), label2),
+      input4,
+      span(toList([class$("message")]), message)
+    ])
+  );
+}
+function field2(attributes, label2, input4, message) {
+  return of2(label, attributes, label2, input4, message);
+}
+
+// build/dev/javascript/lustre_ui/lustre/ui/input.mjs
+function input2(attributes) {
+  return input(
+    prepend(class$("lustre-ui-input"), attributes)
+  );
+}
+
+// build/dev/javascript/lustre_ui/lustre/ui/layout/aside.mjs
+function of3(element2, attributes, side, main2) {
+  return element2(
+    prepend(class$("lustre-ui-aside"), attributes),
+    toList([side, main2])
+  );
+}
+function aside(attributes, side, main2) {
+  return of3(div, attributes, side, main2);
+}
+function content_first() {
+  return class$("content-first");
+}
+function align_centre() {
+  return class$("align-centre");
+}
+
+// build/dev/javascript/lustre_ui/lustre/ui/layout/centre.mjs
+function of4(element2, attributes, children) {
+  return element2(
+    prepend(class$("lustre-ui-centre"), attributes),
+    toList([children])
+  );
+}
+function centre(attributes, children) {
+  return of4(div, attributes, children);
+}
+
+// build/dev/javascript/gleam_community_colour/gleam_community/colour.mjs
+var Rgba = class extends CustomType {
+  constructor(r, g, b, a) {
+    super();
+    this.r = r;
+    this.g = g;
+    this.b = b;
+    this.a = a;
+  }
+};
+var light_red = new Rgba(
+  0.9372549019607843,
+  0.1607843137254902,
+  0.1607843137254902,
+  1
+);
+var red = new Rgba(0.8, 0, 0, 1);
+var dark_red = new Rgba(0.6431372549019608, 0, 0, 1);
+var light_orange = new Rgba(
+  0.9882352941176471,
+  0.6862745098039216,
+  0.24313725490196078,
+  1
+);
+var orange = new Rgba(0.9607843137254902, 0.4745098039215686, 0, 1);
+var dark_orange = new Rgba(
+  0.807843137254902,
+  0.3607843137254902,
+  0,
+  1
+);
+var light_yellow = new Rgba(
+  1,
+  0.9137254901960784,
+  0.30980392156862746,
+  1
+);
+var yellow = new Rgba(0.9294117647058824, 0.8313725490196079, 0, 1);
+var dark_yellow = new Rgba(
+  0.7686274509803922,
+  0.6274509803921569,
+  0,
+  1
+);
+var light_green = new Rgba(
+  0.5411764705882353,
+  0.8862745098039215,
+  0.20392156862745098,
+  1
+);
+var green = new Rgba(
+  0.45098039215686275,
+  0.8235294117647058,
+  0.08627450980392157,
+  1
+);
+var dark_green = new Rgba(
+  0.3058823529411765,
+  0.6039215686274509,
+  0.023529411764705882,
+  1
+);
+var light_blue = new Rgba(
+  0.4470588235294118,
+  0.6235294117647059,
+  0.8117647058823529,
+  1
+);
+var blue = new Rgba(
+  0.20392156862745098,
+  0.396078431372549,
+  0.6431372549019608,
+  1
+);
+var dark_blue = new Rgba(
+  0.12549019607843137,
+  0.2901960784313726,
+  0.5294117647058824,
+  1
+);
+var light_purple = new Rgba(
+  0.6784313725490196,
+  0.4980392156862745,
+  0.6588235294117647,
+  1
+);
+var purple = new Rgba(
+  0.4588235294117647,
+  0.3137254901960784,
+  0.4823529411764706,
+  1
+);
+var dark_purple = new Rgba(
+  0.3607843137254902,
+  0.20784313725490197,
+  0.4,
+  1
+);
+var light_brown = new Rgba(
+  0.9137254901960784,
+  0.7254901960784313,
+  0.43137254901960786,
+  1
+);
+var brown = new Rgba(
+  0.7568627450980392,
+  0.49019607843137253,
+  0.06666666666666667,
+  1
+);
+var dark_brown = new Rgba(
+  0.5607843137254902,
+  0.34901960784313724,
+  0.00784313725490196,
+  1
+);
+var black = new Rgba(0, 0, 0, 1);
+var white = new Rgba(1, 1, 1, 1);
+var light_grey = new Rgba(
+  0.9333333333333333,
+  0.9333333333333333,
+  0.9254901960784314,
+  1
+);
+var grey = new Rgba(
+  0.8274509803921568,
+  0.8431372549019608,
+  0.8117647058823529,
+  1
+);
+var dark_grey = new Rgba(
+  0.7294117647058823,
+  0.7411764705882353,
+  0.7137254901960784,
+  1
+);
+var light_gray = new Rgba(
+  0.9333333333333333,
+  0.9333333333333333,
+  0.9254901960784314,
+  1
+);
+var gray = new Rgba(
+  0.8274509803921568,
+  0.8431372549019608,
+  0.8117647058823529,
+  1
+);
+var dark_gray = new Rgba(
+  0.7294117647058823,
+  0.7411764705882353,
+  0.7137254901960784,
+  1
+);
+var light_charcoal = new Rgba(
+  0.5333333333333333,
+  0.5411764705882353,
+  0.5215686274509804,
+  1
+);
+var charcoal = new Rgba(
+  0.3333333333333333,
+  0.3411764705882353,
+  0.3254901960784314,
+  1
+);
+var dark_charcoal = new Rgba(
+  0.1803921568627451,
+  0.20392156862745098,
+  0.21176470588235294,
+  1
+);
+var pink = new Rgba(1, 0.6862745098039216, 0.9529411764705882, 1);
+
+// build/dev/javascript/lustre_ui/lustre/ui.mjs
+var aside2 = aside;
+var button3 = button2;
+var centre2 = centre;
+var field3 = field2;
+var input3 = input2;
 
 // build/dev/javascript/csp/csp.mjs
-var Increment = class extends CustomType {
+var Model = class extends CustomType {
+  constructor(value3, length3, max2) {
+    super();
+    this.value = value3;
+    this.length = length3;
+    this.max = max2;
+  }
 };
-var Decrement = class extends CustomType {
+var UserUpdatedMessage = class extends CustomType {
+  constructor(value3) {
+    super();
+    this.value = value3;
+  }
+};
+var UserResetMessage = class extends CustomType {
 };
 function init2(_) {
-  return 0;
+  return new Model("", 0, 10);
 }
 function update2(model, msg) {
-  if (msg instanceof Increment) {
-    return model + 1;
+  if (msg instanceof UserUpdatedMessage) {
+    let value3 = msg.value;
+    let length3 = length2(value3);
+    let $ = length3 <= model.max;
+    if ($) {
+      return model.withFields({ value: value3, length: length3 });
+    } else {
+      return model;
+    }
   } else {
-    return model - 1;
+    return model.withFields({ value: "", length: 0 });
   }
 }
 function view(model) {
-  let count = to_string(model);
-  return div(
-    toList([]),
-    toList([
-      button(
-        toList([on_click(new Increment())]),
-        toList([text("+")])
+  let styles = toList([
+    ["width", "100vw"],
+    ["height", "100vh"],
+    ["padding", "1rem"]
+  ]);
+  let length3 = to_string2(model.length);
+  let max2 = to_string2(model.max);
+  return centre2(
+    toList([style(styles)]),
+    aside2(
+      toList([content_first(), align_centre()]),
+      field3(
+        toList([]),
+        toList([text("Write a message:")]),
+        input3(
+          toList([
+            value(model.value),
+            on_input((var0) => {
+              return new UserUpdatedMessage(var0);
+            })
+          ])
+        ),
+        toList([text(length3 + "/" + max2)])
       ),
-      text(count),
-      button(
-        toList([on_click(new Decrement())]),
-        toList([text("-")])
+      button3(
+        toList([on_click(new UserResetMessage())]),
+        toList([text("Reset")])
       )
-    ])
+    )
   );
 }
 function main() {
@@ -809,13 +2192,13 @@ function main() {
     throw makeError(
       "assignment_no_match",
       "csp",
-      9,
+      14,
       "main",
       "Assignment pattern did not match",
       { value: $ }
     );
   }
-  return void 0;
+  return $;
 }
 
 // build/.lustre/entry.mjs
