@@ -56,15 +56,16 @@ pub opaque type Msg {
   InputMessage(key: String, value: String)
 }
 
-fn update(model: Model, msg: Msg) -> #(Model,effect.Effect(a)) {
+fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(a)) {
   case msg {
     InputMessage(key, value) -> {
       let Model(d) = model
       let ba = bit_array.from_string(value)
       let encoded = bit_array.base64_encode(ba, True)
-      #(Model(dict.update(d, key, fn(_x) { value })), effect.from(fn(_){
-        set_hash(encoded)
-      }))
+      #(
+        Model(dict.update(d, key, fn(_x) { value })),
+        effect.from(fn(_) { set_hash(encoded) }),
+      )
     }
   }
 }
