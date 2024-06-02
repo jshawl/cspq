@@ -295,22 +295,6 @@ function do_map(loop$list, loop$fun, loop$acc) {
 function map(list, fun) {
   return do_map(list, fun, toList([]));
 }
-function fold(loop$list, loop$initial, loop$fun) {
-  while (true) {
-    let list = loop$list;
-    let initial = loop$initial;
-    let fun = loop$fun;
-    if (list.hasLength(0)) {
-      return initial;
-    } else {
-      let x = list.head;
-      let rest$1 = list.tail;
-      loop$list = rest$1;
-      loop$initial = fun(initial, x);
-      loop$fun = fun;
-    }
-  }
-}
 
 // build/dev/javascript/gleam_stdlib/gleam/result.mjs
 function map2(result, fun) {
@@ -1322,23 +1306,6 @@ function get(from2, get2) {
 function insert(dict, key, value3) {
   return map_insert(key, value3, dict);
 }
-function fold_list_of_pair(loop$list, loop$initial) {
-  while (true) {
-    let list = loop$list;
-    let initial = loop$initial;
-    if (list.hasLength(0)) {
-      return initial;
-    } else {
-      let x = list.head;
-      let rest = list.tail;
-      loop$list = rest;
-      loop$initial = insert(initial, x[0], x[1]);
-    }
-  }
-}
-function from_list(list) {
-  return fold_list_of_pair(list, new$());
-}
 function update(dict, key, fun) {
   let _pipe = dict;
   let _pipe$1 = get(_pipe, key);
@@ -1425,25 +1392,8 @@ function attribute(name, value3) {
 function on(name, handler) {
   return new Event("on" + name, handler);
 }
-function style(properties) {
-  return attribute(
-    "style",
-    fold(
-      properties,
-      "",
-      (styles, _use1) => {
-        let name$1 = _use1[0];
-        let value$1 = _use1[1];
-        return styles + name$1 + ":" + value$1 + ";";
-      }
-    )
-  );
-}
 function class$(name) {
   return attribute("class", name);
-}
-function type_(name) {
-  return attribute("type", name);
 }
 function value(val) {
   return attribute("value", val);
@@ -1951,14 +1901,23 @@ function start3(app, selector, flags) {
   );
 }
 
+// build/dev/javascript/lustre/lustre/element/html.mjs
+function span(attrs, children) {
+  return element("span", attrs, children);
+}
+function form(attrs, children) {
+  return element("form", attrs, children);
+}
+function input(attrs) {
+  return element("input", attrs, toList([]));
+}
+function label(attrs, children) {
+  return element("label", attrs, children);
+}
+
 // build/dev/javascript/lustre/lustre/event.mjs
 function on2(name, handler) {
   return on(name, handler);
-}
-function on_click(msg) {
-  return on2("click", (_) => {
-    return new Ok(msg);
-  });
 }
 function value2(event2) {
   let _pipe = event2;
@@ -1973,34 +1932,6 @@ function on_input(msg) {
       let _pipe = value2(event2);
       return map2(_pipe, msg);
     }
-  );
-}
-
-// build/dev/javascript/lustre/lustre/element/html.mjs
-function div(attrs, children) {
-  return element("div", attrs, children);
-}
-function span(attrs, children) {
-  return element("span", attrs, children);
-}
-function button(attrs, children) {
-  return element("button", attrs, children);
-}
-function input(attrs) {
-  return element("input", attrs, toList([]));
-}
-function label(attrs, children) {
-  return element("label", attrs, children);
-}
-
-// build/dev/javascript/lustre_ui/lustre/ui/button.mjs
-function button2(attributes, children) {
-  return button(
-    prepend(
-      class$("lustre-ui-button"),
-      prepend(type_("button"), attributes)
-    ),
-    children
   );
 }
 
@@ -2039,34 +1970,6 @@ function input2(attributes) {
   return input(
     prepend(class$("lustre-ui-input"), attributes)
   );
-}
-
-// build/dev/javascript/lustre_ui/lustre/ui/layout/aside.mjs
-function of3(element2, attributes, side, main2) {
-  return element2(
-    prepend(class$("lustre-ui-aside"), attributes),
-    toList([side, main2])
-  );
-}
-function aside(attributes, side, main2) {
-  return of3(div, attributes, side, main2);
-}
-function content_first() {
-  return class$("content-first");
-}
-function align_centre() {
-  return class$("align-centre");
-}
-
-// build/dev/javascript/lustre_ui/lustre/ui/layout/centre.mjs
-function of4(element2, attributes, children) {
-  return element2(
-    prepend(class$("lustre-ui-centre"), attributes),
-    toList([children])
-  );
-}
-function centre(attributes, children) {
-  return of4(div, attributes, children);
 }
 
 // build/dev/javascript/gleam_community_colour/gleam_community/colour.mjs
@@ -2244,9 +2147,6 @@ var dark_charcoal = new Rgba(
 var pink = new Rgba(1, 0.6862745098039216, 0.9529411764705882, 1);
 
 // build/dev/javascript/lustre_ui/lustre/ui.mjs
-var aside2 = aside;
-var button3 = button2;
-var centre2 = centre;
 var field3 = field2;
 var input3 = input2;
 
@@ -2264,30 +2164,18 @@ var InputMessage = class extends CustomType {
     this.value = value3;
   }
 };
-var UserResetMessage = class extends CustomType {
-};
 function init2(_) {
-  let d = from_list(toList([["mykey", "myvalue"]]));
-  return new Model(d);
+  return new Model(new$());
 }
 function update2(model, msg) {
-  if (msg instanceof InputMessage) {
-    let key = msg.key;
-    let value3 = msg.value;
-    let d = model[0];
-    return new Model(update(d, key, (_) => {
-      return value3;
-    }));
-  } else {
-    return new Model(from_list(toList([])));
-  }
+  let key = msg.key;
+  let value3 = msg.value;
+  let d = model[0];
+  return new Model(update(d, key, (_) => {
+    return value3;
+  }));
 }
 function view(model) {
-  let styles = toList([
-    ["width", "100vw"],
-    ["height", "100vh"],
-    ["padding", "1rem"]
-  ]);
   let handler = (key) => {
     return (value4) => {
       return new InputMessage(key, value4);
@@ -2296,7 +2184,7 @@ function view(model) {
   let d = model[0];
   debug(d);
   let value3 = (() => {
-    let $ = get(d, "mykey");
+    let $ = get(d, "default-src");
     if (!$.isOk()) {
       return "";
     } else {
@@ -2304,23 +2192,21 @@ function view(model) {
       return v;
     }
   })();
-  return centre2(
-    toList([style(styles)]),
-    aside2(
-      toList([content_first(), align_centre()]),
+  return form(
+    toList([]),
+    toList([
       field3(
         toList([]),
-        toList([text("Write a message:")]),
+        toList([text("default-src:")]),
         input3(
-          toList([value(value3), on_input(handler("mykey"))])
+          toList([
+            value(value3),
+            on_input(handler("default-src"))
+          ])
         ),
         toList([])
-      ),
-      button3(
-        toList([on_click(new UserResetMessage())]),
-        toList([text("Reset")])
       )
-    )
+    ])
   );
 }
 function main() {
@@ -2330,7 +2216,7 @@ function main() {
     throw makeError(
       "assignment_no_match",
       "csp",
-      18,
+      14,
       "main",
       "Assignment pattern did not match",
       { value: $ }

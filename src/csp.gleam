@@ -1,15 +1,11 @@
-import gleam/int
 import gleam/dict
-import gleam/string
 import gleam/io
-import gleam/option.{Some, None}
 import lustre
 import lustre/attribute
 import lustre/element.{type Element}
+import lustre/element/html
 import lustre/event
 import lustre/ui
-import lustre/ui/layout/aside
-import gleam/dynamic.{type DecodeError, type Decoder, type Dynamic}
 
 // MAIN ------------------------------------------------------------------------
 
@@ -25,15 +21,13 @@ type Model {
 }
 
 fn init(_flags) -> Model {
-  let d = dict.from_list([#("mykey", "myvalue")])
-  Model(d)
+  Model(dict.new())
 }
 
 // UPDATE ----------------------------------------------------------------------
 
 pub opaque type Msg {
   InputMessage(key: String, value: String)
-  UserResetMessage
 }
 
 fn update(model: Model, msg: Msg) -> Model {
@@ -44,15 +38,12 @@ fn update(model: Model, msg: Msg) -> Model {
         value
       }))
     }
-    UserResetMessage -> Model(dict.from_list([]))
   }
 }
 
 // VIEW ------------------------------------------------------------------------
 
 fn view(model: Model) -> Element(Msg) {
-  let styles = [#("width", "100vw"), #("height", "100vh"), #("padding", "1rem")]
-
   let handler = fn (key: String) { 
     fn (value: String) {
       InputMessage(key, value)
@@ -62,28 +53,23 @@ fn view(model: Model) -> Element(Msg) {
   let Model(d) = model
   io.debug(d)
 
-  let value = case dict.get(d, "mykey") {
+  let value = case dict.get(d, "default-src") {
     Error(_) -> ""
     Ok(v) -> v
   }
 
-  ui.centre(
-    [attribute.style(styles)],
-    ui.aside(
-      [aside.content_first(), aside.align_centre()],
+  html.form(
+    [],
+    [
       ui.field(
         [],
-        [element.text("Write a message:")],
+        [element.text("default-src:")],
         ui.input([
           attribute.value(value),
-          event.on_input(handler("mykey")),
+          event.on_input(handler("default-src")),
         ]),
-        [],
+        []
       ),
-      ui.button(
-        [event.on_click(UserResetMessage)], 
-        [element.text("Reset")]
-      ),
-    ),
+    ]
   )
 }
