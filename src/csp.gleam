@@ -1,11 +1,13 @@
 import gleam/int
 import gleam/string
+import gleam/io
 import lustre
 import lustre/attribute
 import lustre/element.{type Element}
 import lustre/event
 import lustre/ui
 import lustre/ui/layout/aside
+import gleam/dynamic.{type DecodeError, type Decoder, type Dynamic}
 
 // MAIN ------------------------------------------------------------------------
 
@@ -27,13 +29,15 @@ fn init(_flags) -> Model {
 // UPDATE ----------------------------------------------------------------------
 
 pub opaque type Msg {
-  UserUpdatedMessage(value: String)
+  UserUpdatedMessage(key: String, value: String)
   UserResetMessage
 }
 
 fn update(model: Model, msg: Msg) -> Model {
   case msg {
-    UserUpdatedMessage(value) -> {
+    UserUpdatedMessage(key, value) -> {
+      io.debug(key)
+      io.debug(value)
       let length = string.length(value)
 
       case length <= model.max {
@@ -52,6 +56,12 @@ fn view(model: Model) -> Element(Msg) {
   let length = int.to_string(model.length)
   let max = int.to_string(model.max)
 
+  let handler = fn (key: String) { 
+    fn (value: String) {
+      UserUpdatedMessage(key, value)
+    }
+  }
+
   ui.centre(
     [attribute.style(styles)],
     ui.aside(
@@ -61,11 +71,14 @@ fn view(model: Model) -> Element(Msg) {
         [element.text("Write a message:")],
         ui.input([
           attribute.value(model.value),
-          event.on_input(UserUpdatedMessage),
+          event.on_input(handler("mykey")),
         ]),
         [element.text(length <> "/" <> max)],
       ),
-      ui.button([event.on_click(UserResetMessage)], [element.text("Reset")]),
+      ui.button(
+        [event.on_click(UserResetMessage)], 
+        [element.text("Reset")]
+      ),
     ),
   )
 }
