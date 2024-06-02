@@ -6,6 +6,7 @@
 ```sh
 gleam add csp
 ```
+
 ```gleam
 import csp
 
@@ -19,7 +20,6 @@ Further documentation can be found at <https://hexdocs.pm/csp>.
 ## Development
 
 ```sh
-gleam run   # Run the project
+gleam run -m lustre/dev start # Run the project
 gleam test  # Run the tests
-gleam shell # Run an Erlang shell
 ```
