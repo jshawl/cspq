@@ -1,12 +1,14 @@
 import gleam/bit_array
 import gleam/dict
 import gleam/io
+import gleam/list
 import gleam/string
 import lustre
 import lustre/effect
 import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
+import parser
 
 @external(javascript, "./ffi.js", "getHash")
 pub fn get_hash() -> String
@@ -72,21 +74,42 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(a)) {
 
 // VIEW ------------------------------------------------------------------------
 
-fn view(model: Model) -> Element(Msg) {
-  let handler = fn(key: String) {
-    fn(value: String) { InputMessage(key, value) }
-  }
+fn handler(key: String) {
+  fn(value: String) { InputMessage(key, value) }
+}
 
+fn view(model: Model) -> Element(Msg) {
   let Model(d) = model
-  io.debug(d)
+
+  let parsed = case dict.get(d, "csp") {
+    Error(Nil) -> []
+    Ok(p) ->
+      dict.to_list(parser.parse_csp(p))
+      |> list.filter(fn(x) {
+        let #(key, _values) = x
+        key != ""
+      })
+  }
 
   let value = case dict.get(d, "csp") {
     Error(_) -> ""
     Ok(v) -> v
   }
 
-  html.form([], [
-    html.label([], [element.text("csp:")]),
-    html.textarea([event.on_input(handler("csp"))], value),
+  html.div([], [
+    html.form([], [
+      html.label([], [element.text("csp:")]),
+      html.textarea([event.on_input(handler("csp"))], value),
+    ]),
+    html.dl(
+      [],
+      list.map(parsed, fn(x) {
+        let #(key, values) = x
+        element.fragment([
+          html.dt([], [element.text(key)]),
+          html.dd([], [element.text(string.join(values, " "))]),
+        ])
+      }),
+    ),
   ])
 }
