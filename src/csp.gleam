@@ -9,7 +9,6 @@ import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
 import parser
-import server
 
 @external(javascript, "./ffi.js", "getHash")
 pub fn get_hash() -> String
