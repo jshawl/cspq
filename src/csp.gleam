@@ -8,6 +8,7 @@ import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
 import parser
+import server
 
 @external(javascript, "./ffi.js", "getHash")
 pub fn get_hash() -> String
@@ -15,9 +16,17 @@ pub fn get_hash() -> String
 @external(javascript, "./ffi.js", "setHash")
 pub fn set_hash(h: String) -> Nil
 
+fn include_in_bundle(_module: a) {
+  ""
+  // noop
+}
+
 // MAIN ------------------------------------------------------------------------
 
 pub fn main() {
+  include_in_bundle(server.content_security_policy)
+  include_in_bundle(server.response_body)
+  include_in_bundle(server.create_nonce)
   let app = lustre.application(init, update, view)
   let assert Ok(_) = lustre.start(app, "#app", Nil)
 }
