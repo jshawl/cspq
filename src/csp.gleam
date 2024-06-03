@@ -87,6 +87,35 @@ fn handler(key: String) {
   fn(value: String) { InputMessage(key, value) }
 }
 
+fn view_parsed_csp(parsed: List(#(String, List(String)))) {
+  html.dl(
+    [],
+    list.map(parsed, fn(x) {
+      let #(key, values) = x
+      element.fragment([
+        html.dt([], [
+          html.a(
+            [
+              attribute.href(
+                "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/"
+                <> key,
+              ),
+            ],
+            [element.text(key)],
+          ),
+        ]),
+        html.dd([], [
+          html.div(
+            [],
+            // TODO keys and values should be in alphabetical order
+            list.map(values, fn(value) { html.code([], [element.text(value)]) }),
+          ),
+        ]),
+      ])
+    }),
+  )
+}
+
 fn view(model: Model) -> Element(Msg) {
   let Model(d) = model
 
@@ -110,32 +139,6 @@ fn view(model: Model) -> Element(Msg) {
       html.label([], [element.text("csp:")]),
       html.textarea([event.on_input(handler("csp"))], value),
     ]),
-    html.dl(
-      [],
-      list.map(parsed, fn(x) {
-        let #(key, values) = x
-        element.fragment([
-          html.dt([], [
-            html.a(
-              [
-                attribute.href(
-                  "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/"
-                  <> key,
-                ),
-              ],
-              [element.text(key)],
-            ),
-          ]),
-          html.dd([], [
-            html.div(
-              [],
-              list.map(values, fn(value) {
-                html.code([], [element.text(value)])
-              }),
-            ),
-          ]),
-        ])
-      }),
-    ),
+    view_parsed_csp(parsed),
   ])
 }
