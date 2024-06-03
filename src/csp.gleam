@@ -3,6 +3,7 @@ import gleam/dict
 import gleam/list
 import gleam/string
 import lustre
+import lustre/attribute
 import lustre/effect
 import lustre/element.{type Element}
 import lustre/element/html
@@ -114,8 +115,25 @@ fn view(model: Model) -> Element(Msg) {
       list.map(parsed, fn(x) {
         let #(key, values) = x
         element.fragment([
-          html.dt([], [element.text(key)]),
-          html.dd([], [element.text(string.join(values, " "))]),
+          html.dt([], [
+            html.a(
+              [
+                attribute.href(
+                  "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/"
+                  <> key,
+                ),
+              ],
+              [element.text(key)],
+            ),
+          ]),
+          html.dd([], [
+            html.div(
+              [],
+              list.map(values, fn(value) {
+                html.code([], [element.text(value)])
+              }),
+            ),
+          ]),
         ])
       }),
     ),
