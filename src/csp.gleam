@@ -17,17 +17,9 @@ pub fn get_hash() -> String
 @external(javascript, "./ffi.js", "setHash")
 pub fn set_hash(h: String) -> Nil
 
-fn include_in_bundle(_module: a) {
-  ""
-  // noop
-}
-
 // MAIN ------------------------------------------------------------------------
 
 pub fn main() {
-  include_in_bundle(server.content_security_policy)
-  include_in_bundle(server.response_body)
-  include_in_bundle(server.create_nonce)
   let app = lustre.application(init, update, view)
   let assert Ok(_) = lustre.start(app, "#app", Nil)
 }
@@ -43,8 +35,7 @@ fn init(_flags) -> #(Model, effect.Effect(a)) {
   let starter_csp = "default-src 'self'; img-src https://*; child-src 'none';"
 
   let csp = case string.length(hash) {
-    0 -> starter_csp
-    1 -> starter_csp
+    0 | 1 -> starter_csp
     _ -> {
       let encoded =
         string.slice(from: hash, at_index: 1, length: string.length(hash))
@@ -74,7 +65,7 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(a)) {
       let ba = bit_array.from_string(value)
       let encoded = bit_array.base64_encode(ba, True)
       #(
-        Model(dict.update(d, key, fn(_x) { value })),
+        Model(dict.update(d, key, fn(_) { value })),
         effect.from(fn(_) { set_hash(encoded) }),
       )
     }
@@ -84,7 +75,7 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(a)) {
 // VIEW ------------------------------------------------------------------------
 
 fn handler(key: String) {
-  fn(value: String) { InputMessage(key, value) }
+  InputMessage(key, _)
 }
 
 fn view_parsed_csp(parsed: List(#(String, List(String)))) {
@@ -124,7 +115,7 @@ fn view(model: Model) -> Element(Msg) {
     Ok(p) ->
       dict.to_list(parser.parse_csp(p))
       |> list.filter(fn(x) {
-        let #(key, _values) = x
+        let #(key, _) = x
         key != ""
       })
   }
