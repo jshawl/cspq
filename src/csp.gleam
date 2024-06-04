@@ -1,5 +1,6 @@
 import gleam/bit_array
 import gleam/dict
+import gleam/io
 import gleam/list
 import gleam/string
 import lustre
@@ -10,29 +11,27 @@ import lustre/element/html
 import lustre/event
 import parser
 
-@external(javascript, "./ffi.js", "getHash")
+@external(javascript, "./ffi.mjs", "getHash")
 pub fn get_hash() -> String
 
-@external(javascript, "./ffi.js", "setHash")
+@external(javascript, "./ffi.mjs", "setHash")
 pub fn set_hash(h: String) -> Nil
 
 // MAIN ------------------------------------------------------------------------
 
 pub fn main() {
   let app = lustre.application(init, update, view)
-  let assert Ok(_) = lustre.start(app, "#app", Nil)
+  let assert Ok(_) = lustre.start(app, "#app", get_hash())
 }
 
 // MODEL -----------------------------------------------------------------------
 
-type Model {
+pub type Model {
   Model(dict.Dict(String, String))
 }
 
-fn init(_flags) -> #(Model, effect.Effect(a)) {
-  let hash = get_hash()
+pub fn init(hash) -> #(Model, effect.Effect(a)) {
   let starter_csp = "default-src 'self'; img-src https://*; child-src 'none';"
-
   let csp = case string.length(hash) {
     0 | 1 -> starter_csp
     _ -> {
