@@ -1,27 +1,19 @@
-import gleam/bit_array
 import gleam/dict
-import gleam/io
 import gleam/list
-import gleam/string
 import lustre
 import lustre/attribute
 import lustre/effect
 import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
+import lustre_hash_state
 import parser
-
-@external(javascript, "./ffi.mjs", "getHash")
-pub fn get_hash() -> String
-
-@external(javascript, "./ffi.mjs", "setHash")
-pub fn set_hash(h: String) -> Nil
 
 // MAIN ------------------------------------------------------------------------
 
 pub fn main() {
   let app = lustre.application(init, update, view)
-  let assert Ok(_) = lustre.start(app, "#app", get_hash())
+  let assert Ok(_) = lustre.start(app, "#app", Nil)
 }
 
 // MODEL -----------------------------------------------------------------------
@@ -30,41 +22,39 @@ pub type Model {
   Model(dict.Dict(String, String))
 }
 
-pub fn init(hash) -> #(Model, effect.Effect(a)) {
-  let starter_csp = "default-src 'self'; img-src https://*; child-src 'none';"
-  let csp = case string.length(hash) {
-    0 | 1 -> starter_csp
-    _ -> {
-      let encoded =
-        string.slice(from: hash, at_index: 1, length: string.length(hash))
-      case bit_array.base64_decode(encoded) {
-        Error(Nil) -> starter_csp
-        Ok(v) ->
-          case bit_array.to_string(v) {
-            Error(Nil) -> starter_csp
-            Ok(v) -> v
-          }
-      }
-    }
-  }
-  #(Model(dict.from_list([#("csp", csp)])), effect.none())
+pub fn init(_flags) -> #(Model, effect.Effect(Msg)) {
+  let starter_csp = "default-src 'none'; img-src https://*; child-src 'none';"
+  let starter_scripts = "<script>console.log('yay!')</script>"
+  #(
+    Model(
+      dict.from_list([#("csp", starter_csp), #("scripts", starter_scripts)]),
+    ),
+    lustre_hash_state.init(HashChange),
+  )
 }
 
 // UPDATE ----------------------------------------------------------------------
 
 pub opaque type Msg {
   InputMessage(key: String, value: String)
+  HashChange(key: String, value: String)
 }
 
 fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(a)) {
+  let Model(d) = model
   case msg {
+    HashChange(key, value) -> {
+      #(
+        Model(
+          dict.update(d, key, fn(_) { value |> lustre_hash_state.from_base64 }),
+        ),
+        lustre_hash_state.noop(),
+      )
+    }
     InputMessage(key, value) -> {
-      let Model(d) = model
-      let ba = bit_array.from_string(value)
-      let encoded = bit_array.base64_encode(ba, True)
       #(
         Model(dict.update(d, key, fn(_) { value })),
-        effect.from(fn(_) { set_hash(encoded) }),
+        lustre_hash_state.update(key, value |> lustre_hash_state.to_base64),
       )
     }
   }
@@ -118,16 +108,28 @@ fn view(model: Model) -> Element(Msg) {
       })
   }
 
-  let value = case dict.get(d, "csp") {
+  let csp = case dict.get(d, "csp") {
     Error(_) -> ""
     Ok(v) -> v
   }
 
+  let scripts = case dict.get(d, "scripts") {
+    Error(_) -> "yikes"
+    Ok(v) -> v
+  }
+
   html.div([], [
+    html.h1([], [element.text("cspreview")]),
     html.form([], [
+      html.h2([], [element.text("Content Security Policy")]),
       html.label([], [element.text("csp:")]),
-      html.textarea([event.on_input(handler("csp"))], value),
+      html.textarea([event.on_input(handler("csp"))], csp),
     ]),
     view_parsed_csp(parsed),
+    html.form([], [
+      html.h2([], [element.text("Try it!")]),
+      html.label([], [element.text("scripts:")]),
+      html.textarea([event.on_input(handler("scripts"))], scripts),
+    ]),
   ])
 }
