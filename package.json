@@ -1,0 +1,15 @@
+{
+  "name": "csp",
+  "version": "1.0.0",
+  "description": "[![Package Version](https://img.shields.io/hexpm/v/csp)](https://hex.pm/packages/csp) [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/csp/)",
+  "main": "index.js",
+  "devDependencies": {
+    "wrangler": "^3.59.0"
+  },
+  "scripts": {
+    "dev": "wrangler dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
