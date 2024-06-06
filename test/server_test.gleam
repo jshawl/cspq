@@ -18,5 +18,9 @@ pub fn params_test(){
 pub fn get_query_param_test() {
   server.get_query_param([#("a","1")], "a")
   |> should.equal("1")
+}
 
+pub fn base64_decode_test() {
+  server.base64_decode("PHNjcmlwdD5jb25zb2xlLmxvZygneHNzIScpPC9zY3JpcHQ-")
+  |> should.equal("<script>console.log('xss!')</script>")
 }

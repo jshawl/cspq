@@ -1,6 +1,7 @@
 import gleam/string
 import gleam/io
 import gleam/list
+import gleam/bit_array
 
 pub type Request
 
@@ -18,9 +19,10 @@ pub fn url(req: Request) -> String
 
 pub fn handle_request(request: Request) -> Response {
   let headers = [#("content-type", "text/html")]
-  let body = "<h1>yay!</h1>" <> url(request)
-  response(200, headers, body)
+  let html = request |> url |> params |> get_query_param("html") |> base64_decode
+  response(200, headers, html)
 }
+
 
 pub type Params = List(#(String, String))
 
@@ -47,6 +49,16 @@ pub fn get_query_param(params: Params, key: String) -> String {
     Ok(f) -> {
       let #(_,v) = f
       v
+    }
+  }
+}
+
+pub fn base64_decode(string: String) -> String {
+  case bit_array.base64_url_decode(string) {
+    Error(Nil) -> ""
+    Ok(decoded) ->  case bit_array.to_string(decoded) {
+      Error(Nil) -> ""
+      Ok(s) -> s
     }
   }
 }
