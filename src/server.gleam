@@ -22,7 +22,9 @@ pub fn handle_request(request: Request) -> Response {
   response(200, headers, body)
 }
 
-pub fn params(url: String) -> List(#(String, String)){
+pub type Params = List(#(String, String))
+
+pub fn params(url: String) -> Params {
   case string.split(url, "?") {
     [_, query_string] -> query_string
     [] | [_] | [_,_,..] -> ""
@@ -34,4 +36,17 @@ pub fn params(url: String) -> List(#(String, String)){
       [] | [_] | [_,_,..] -> #("","")
     }
   })
+}
+
+pub fn get_query_param(params: Params, key: String) -> String {
+  case list.find(params, fn(x){
+    let #(k,_) = x
+    k == key
+  }) {
+    Error(Nil) -> ""
+    Ok(f) -> {
+      let #(_,v) = f
+      v
+    }
+  }
 }

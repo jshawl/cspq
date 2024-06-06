@@ -14,3 +14,9 @@ pub fn params_test(){
   server.params("https://example.com/")
   |> should.equal([#("","")])
 }
+
+pub fn get_query_param_test() {
+  server.get_query_param([#("a","1")], "a")
+  |> should.equal("1")
+
+}
