@@ -6,3 +6,5 @@ export const response = (status, headersList, body) => {
     headers,
   });
 };
+
+export const url = (request) => request.url;
