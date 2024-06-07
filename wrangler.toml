@@ -1,4 +1,4 @@
-name = "gleam-cloudflare-worker"
+name = "cspq"
 main = "build/dev/javascript/csp/index.js"
 compatibility_date = "2023-09-22"
 
