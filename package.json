@@ -4,10 +4,11 @@
   "description": "[![Package Version](https://img.shields.io/hexpm/v/csp)](https://hex.pm/packages/csp) [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/csp/)",
   "main": "index.js",
   "devDependencies": {
+    "concurrently": "^8.2.2",
     "wrangler": "^3.59.0"
   },
   "scripts": {
-    "dev": "wrangler dev"
+    "dev": "concurrently \"wrangler dev\" \"gleam run -m lustre/dev start\""
   },
   "keywords": [],
   "author": "",
