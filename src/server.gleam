@@ -29,10 +29,10 @@ pub fn response(
 pub fn url(req: Request) -> String
 
 pub fn handle_request(request: Request) -> Response {
-  // let headers = [#("content-type", "text/html")]
   let nonce = create_nonce()
-  let headers = request |> url |> params |> get_response_headers(nonce)
-  let html = request |> url |> params |> get_response_body(nonce)
+  let query_parameters = request |> url |> params
+  let headers = query_parameters |> get_response_headers(nonce)
+  let html = query_parameters |> get_response_body(nonce)
   response(200, headers, html)
 }
 
