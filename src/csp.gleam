@@ -131,5 +131,10 @@ fn view(model: Model) -> Element(Msg) {
       html.label([], [element.text("scripts:")]),
       html.textarea([event.on_input(handler("scripts"))], scripts),
     ]),
+    html.iframe([
+      attribute.src(
+        "http://localhost:8787/?html=" <> lustre_hash_state.to_base64(scripts) <> "&csp=" <> lustre_hash_state.to_base64(csp)
+      )
+    ])
   ])
 }
