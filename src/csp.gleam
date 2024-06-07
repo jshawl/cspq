@@ -134,7 +134,7 @@ fn view(model: Model) -> Element(Msg) {
     ]),
     html.iframe([
       attribute.src(
-        "http://localhost:8787/?html="
+        "https://cspq.jshawl.workers.dev/?html="
         <> lustre_hash_state.to_base64(scripts)
         <> "&csp="
         <> lustre_hash_state.to_base64(csp),
