@@ -11,7 +11,11 @@ import parser
 
 // MAIN ------------------------------------------------------------------------
 
+@external(javascript, "./ffi.mjs", "listen")
+pub fn listen() -> Nil
+
 pub fn main() {
+  listen()
   let app = lustre.application(init, update, view)
   let assert Ok(_) = lustre.start(app, "#app", Nil)
 }

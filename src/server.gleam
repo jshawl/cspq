@@ -79,7 +79,11 @@ pub fn base64_decode(string: String) -> String {
 pub fn app_html(nonce: String) -> String {
   html.script(
     [attribute.attribute("nonce", nonce)],
-    "console.log('plus my own')",
+    "addEventListener('securitypolicyviolation', (e) => {
+      const {blockedURI, violatedDirective, originalPolicy} = e
+      console.log(e)
+      parent.postMessage(JSON.stringify({blockedURI, violatedDirective, originalPolicy}),'*')
+    })",
   )
   |> element.to_string
 }
