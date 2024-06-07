@@ -2,8 +2,10 @@ import gleam/bit_array
 import gleam/io
 import gleam/list
 import gleam/string
+import lustre/attribute
 import lustre/element
 import lustre/element/html
+import gleam/int
 
 pub type Request
 
@@ -21,7 +23,8 @@ pub fn url(req: Request) -> String
 
 pub fn handle_request(request: Request) -> Response {
   let headers = [#("content-type", "text/html")]
-  let html = request |> url |> params |> get_response_body
+  let nonce = create_nonce()
+  let html = request |> url |> params |> get_response_body(nonce)
   response(200, headers, html)
 }
 
@@ -68,13 +71,19 @@ pub fn base64_decode(string: String) -> String {
   }
 }
 
-pub fn app_html() -> String {
+pub fn app_html(nonce: String) -> String {
   html.script(
-    [],
+    [attribute.attribute("nonce", nonce)],
     "console.log('plus my own')"
   ) |> element.to_string
 }
 
-pub fn get_response_body(params: Params) -> String {
-  params |> get_query_param("html") |> base64_decode <> app_html()
+pub fn get_response_body(params: Params, nonce: String) -> String {
+  params |> get_query_param("html") |> base64_decode <> app_html(nonce)
+}
+
+pub fn create_nonce() -> String {
+  list.fold([0,0,0,0,0,0,0], "", fn(accumulator,_){
+    accumulator <> int.to_base36(int.random(10000))
+  })
 }

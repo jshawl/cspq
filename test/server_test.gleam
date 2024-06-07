@@ -30,6 +30,13 @@ pub fn get_response_body_test() {
   re
   |> regex.check(server.get_response_body([
     #("html", "PHNjcmlwdD5jb25zb2xlLmxvZygneHNzIScpPC9zY3JpcHQ-"),
-  ]))
+  ], "nonce"))
+  |> should.be_true
+}
+
+pub fn create_nonce_test(){
+  let assert Ok(re) = regex.from_string("[A-Z0-9]+")
+  re
+  |> regex.check(server.create_nonce())
   |> should.be_true
 }
