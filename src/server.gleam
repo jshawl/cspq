@@ -80,16 +80,36 @@ pub fn app_html(nonce: String) -> String {
   html.script(
     [attribute.attribute("nonce", nonce)],
     "addEventListener('securitypolicyviolation', (e) => {
-      const {blockedURI, violatedDirective, originalPolicy} = e
-      console.log(e)
-      parent.postMessage(JSON.stringify({blockedURI, violatedDirective, originalPolicy}),'*')
+      const {
+        blockedURI,
+        columnNumber,
+        lineNumber,
+        originalPolicy,
+        sourceFile,
+        violatedDirective,
+      } = e
+      if(sourceFile === 'moz-extension') {
+        return
+      }
+      const html = e.target.outerHTML.replace(/</g,'&lt;')
+      const pre = document.createElement('pre')
+      pre.innerHTML = JSON.stringify({
+        blockedURI,
+        columnNumber,
+        lineNumber: lineNumber - 24, // the length of this script
+        originalPolicy,
+        sourceFile,
+        violatedDirective,
+        target: html
+      }, null, 2)
+      document.body.appendChild(pre)
     })",
   )
   |> element.to_string
 }
 
 pub fn get_response_body(params: Params, nonce: String) -> String {
-  params |> get_query_param("html") |> base64_decode <> app_html(nonce)
+  app_html(nonce) <> params |> get_query_param("html") |> base64_decode
 }
 
 pub fn create_nonce() -> String {

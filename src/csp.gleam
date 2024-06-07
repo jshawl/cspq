@@ -1,4 +1,5 @@
 import gleam/dict
+import gleam/io
 import gleam/list
 import lustre
 import lustre/attribute
@@ -11,11 +12,7 @@ import parser
 
 // MAIN ------------------------------------------------------------------------
 
-@external(javascript, "./ffi.mjs", "listen")
-pub fn listen() -> Nil
-
 pub fn main() {
-  listen()
   let app = lustre.application(init, update, view)
   let assert Ok(_) = lustre.start(app, "#app", Nil)
 }
@@ -137,8 +134,11 @@ fn view(model: Model) -> Element(Msg) {
     ]),
     html.iframe([
       attribute.src(
-        "http://localhost:8787/?html=" <> lustre_hash_state.to_base64(scripts) <> "&csp=" <> lustre_hash_state.to_base64(csp)
-      )
-    ])
+        "http://localhost:8787/?html="
+        <> lustre_hash_state.to_base64(scripts)
+        <> "&csp="
+        <> lustre_hash_state.to_base64(csp),
+      ),
+    ]),
   ])
 }

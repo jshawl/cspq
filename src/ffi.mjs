@@ -8,8 +8,3 @@ export const response = (status, headersList, body) => {
 };
 
 export const url = (request) => request.url;
-
-export const listen = () =>
-  globalThis.addEventListener("message", (e) => {
-    console.log("received message", e.data);
-  });
