@@ -26,15 +26,17 @@ pub fn base64_decode_test() {
 }
 
 pub fn get_response_body_test() {
-  let assert Ok(re) = regex.from_string("<script>console.log\\('xss!'\\)</script>(.*)")
+  let assert Ok(re) =
+    regex.from_string("<script>console.log\\('xss!'\\)</script>(.*)")
   re
-  |> regex.check(server.get_response_body([
-    #("html", "PHNjcmlwdD5jb25zb2xlLmxvZygneHNzIScpPC9zY3JpcHQ-"),
-  ], "nonce"))
+  |> regex.check(server.get_response_body(
+    [#("html", "PHNjcmlwdD5jb25zb2xlLmxvZygneHNzIScpPC9zY3JpcHQ-")],
+    "nonce",
+  ))
   |> should.be_true
 }
 
-pub fn create_nonce_test(){
+pub fn create_nonce_test() {
   let assert Ok(re) = regex.from_string("[A-Z0-9]+")
   re
   |> regex.check(server.create_nonce())
