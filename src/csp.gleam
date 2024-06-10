@@ -1,5 +1,4 @@
 import gleam/dict
-import gleam/io
 import gleam/list
 import lustre
 import lustre/attribute
@@ -127,18 +126,5 @@ fn view(model: Model) -> Element(Msg) {
       html.textarea([event.on_input(handler("csp"))], csp),
     ]),
     view_parsed_csp(parsed),
-    html.form([], [
-      html.h2([], [element.text("Try it!")]),
-      html.label([], [element.text("scripts:")]),
-      html.textarea([event.on_input(handler("scripts"))], scripts),
-    ]),
-    html.iframe([
-      attribute.src(
-        "https://cspq.jshawl.workers.dev/?html="
-        <> lustre_hash_state.to_base64(scripts)
-        <> "&csp="
-        <> lustre_hash_state.to_base64(csp),
-      ),
-    ]),
   ])
 }
