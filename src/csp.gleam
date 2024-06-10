@@ -1,4 +1,7 @@
+import cosepo
+import cosepo/directive
 import gleam/dict
+import gleam/io
 import gleam/list
 import lustre
 import lustre/attribute
@@ -7,7 +10,6 @@ import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
 import lustre_hash_state
-import parser
 
 // MAIN ------------------------------------------------------------------------
 
@@ -66,57 +68,54 @@ fn handler(key: String) {
   InputMessage(key, _)
 }
 
-fn view_parsed_csp(parsed: List(#(String, List(String)))) {
-  html.dl(
-    [],
-    list.map(parsed, fn(x) {
-      let #(key, values) = x
-      element.fragment([
-        html.dt([], [
-          html.a(
-            [
-              attribute.href(
-                "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/"
-                <> key,
+fn view_parsed_csp(parsed: Result(cosepo.ContentSecurityPolicy, String)) {
+  case parsed {
+    Ok(p) -> {
+      let cosepo.ContentSecurityPolicy(directives) = p
+      html.dl(
+        [],
+        list.map(directives, fn(x) {
+          io.debug("x is:")
+          io.debug(directive.get_name(x))
+          element.fragment([
+            html.dt([], [
+              html.a(
+                [
+                  attribute.href(
+                    "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/"
+                    <> directive.get_name(x),
+                  ),
+                ],
+                [element.text(directive.get_name(x))],
               ),
-            ],
-            [element.text(key)],
-          ),
-        ]),
-        html.dd([], [
-          html.div(
-            [],
-            // TODO keys and values should be in alphabetical order
-            list.map(values, fn(value) { html.code([], [element.text(value)]) }),
-          ),
-        ]),
-      ])
-    }),
-  )
+            ]),
+            html.dd([], [
+              html.div(
+                [],
+                // TODO keys and values should be in alphabetical order
+                list.map(directive.get_value(x), fn(value) {
+                  html.code([], [element.text(value)])
+                }),
+              ),
+            ]),
+          ])
+        }),
+      )
+    }
+    Error(message) ->
+      html.p([attribute.class("error")], [element.text(message)])
+  }
 }
 
 fn view(model: Model) -> Element(Msg) {
   let Model(d) = model
-
-  let parsed = case dict.get(d, "csp") {
-    Error(Nil) -> []
-    Ok(p) ->
-      dict.to_list(parser.parse_csp(p))
-      |> list.filter(fn(x) {
-        let #(key, _) = x
-        key != ""
-      })
-  }
 
   let csp = case dict.get(d, "csp") {
     Error(_) -> ""
     Ok(v) -> v
   }
 
-  let scripts = case dict.get(d, "scripts") {
-    Error(_) -> "yikes"
-    Ok(v) -> v
-  }
+  let parsed = cosepo.parse(csp)
 
   html.div([], [
     html.h1([], [element.text("cspreview")]),
