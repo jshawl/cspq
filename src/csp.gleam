@@ -118,7 +118,7 @@ fn view(model: Model) -> Element(Msg) {
   let parsed = cosepo.parse(csp)
 
   html.div([], [
-    html.h1([], [element.text("cspreview")]),
+    html.h1([], [element.text("cspq")]),
     html.form([], [
       html.h2([], [element.text("Content Security Policy")]),
       html.label([], [element.text("csp:")]),
